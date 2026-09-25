@@ -1535,3 +1535,25 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 .mk-sortbar__limit { flex: none; white-space: nowrap; }
 .mk-v2 .news-list > .body__body-image { align-items: stretch !important; }
 .mk-v2 .news-list > .body__body-image > a, .mk-v2 .news-list > .body__body-image > .mk-office { align-self: stretch !important; width: 100% !important; }
+.mk-v2 .im-desktop { display: block !important; }
+.mk-v2 .im-mobile { display: none !important; }
+@media (max-width: 767px) {
+    .mk-v2 .im-desktop > img.im { height: 300px; object-position: 80% bottom; opacity: 1 !important; }
+    .mk-v2 .im-desktop .block-img { align-items: flex-start; padding: 20px; background: linear-gradient(180deg, rgba(238, 246, 234, .96) 0%, rgba(238, 246, 234, .85) 45%, rgba(238, 246, 234, 0) 75%); }
+    .mk-v2 .im-desktop .block-2 { max-width: 100%; }
+}
+.mk-v2 .basket-item-actions-remove { display: inline-flex !important; }
+.mk-v2 .basket-item-block-actions { display: flex !important; justify-content: center; }
+.mk-v2 .basket-items-list-header-filter { text-align: left !important; }
+.mk-v2 .basket-checkout-block-total-inner { flex-wrap: wrap; row-gap: 2px; }
+.mk-v2 .basket-checkout-block-total-description { width: 100%; order: 3; }
+.mk-v2 .bx-soa-section-title-count::before { display: inline !important; content: counter(mk-soa) !important; position: static !important; background: none !important; width: auto !important; height: auto !important; }
+.mk-v2 .bx-soa-section-title-count::after { display: none !important; }
+.mk-v2 .bx-soa-coupon-input input { border-radius: 12px !important; }
+.mk-v2 .bx-soa-more-btn .btn { min-width: 120px; }
+.mk-v2 .bx-sls .bx-ui-sls-fake, .mk-v2 .bx-sls .bx-ui-sls-route {
+    position: absolute !important; left: 40px !important; right: 44px !important; top: 0 !important;
+    width: calc(100% - 84px) !important; height: 44px !important; margin: 0 !important; color: var(--mk-text);
+}
+.mk-v2 .bx-sls .bx-ui-sls-route { color: #9aa79a !important; pointer-events: none; }
+.mk-v2 .bx-sls .bx-ui-sls-fake { z-index: 1; background: transparent !important; }

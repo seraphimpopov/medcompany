@@ -197,8 +197,9 @@
             var data = {};
             card.querySelectorAll('.contacts').forEach(function (span) {
                 var parts = span.innerHTML.split(/<br\s*\/?>/i);
-                var label = (parts[0] || '').replace(/&nbsp;|:/g, ' ').replace(/<[^>]+>/g, '').trim().toLowerCase();
-                var value = (parts.slice(1).join(' ') || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+                var decode = function (html) { var t = document.createElement('div'); t.innerHTML = html; return (t.textContent || '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim(); };
+                var label = decode(parts[0] || '').replace(':', '').trim().toLowerCase();
+                var value = decode(parts.slice(1).join(' ') || '');
                 if (label.indexOf('адрес') === 0) data.addr = value;
                 else if (label.indexOf('время') === 0) data.time = value;
                 else if (label.indexOf('телефон') === 0) data.phone = value;
