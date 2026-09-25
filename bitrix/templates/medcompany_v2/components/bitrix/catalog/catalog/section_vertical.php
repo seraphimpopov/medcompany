@@ -309,7 +309,7 @@ if (!isset($isHaveSections)): ?>
                    href="<?= htmlspecialcharsbx($APPLICATION->GetCurPageParam($mkKey === 'popular' ? '' : 'sort=' . $mkKey, array('sort', 'PAGEN_1'))) ?>"><?= $mkItem[0] ?></a>
             <? endforeach ?>
         </div>
-        <label class="mk-sortbar__limit">Показывать по
+        <label class="mk-sortbar__limit"><span class="mk-sortbar__limit-text">Показывать по</span>
             <select onchange="location.href=this.value" aria-label="Товаров на странице">
                 <? foreach ($mkLimits as $mkN): ?>
                     <option value="<?= htmlspecialcharsbx($APPLICATION->GetCurPageParam($mkN === 24 ? '' : 'limit=' . $mkN, array('limit', 'PAGEN_1'))) ?>"<?= $mkN === $mkLimit ? ' selected' : '' ?>><?= $mkN ?></option>

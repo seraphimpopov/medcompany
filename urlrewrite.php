@@ -130,8 +130,8 @@ $arUrlRewrite=array (
   ),
   121 => 
   array (
-    'CONDITION' => '#^\\??(.*)#',
-    'RULE' => '&$1',
+    'CONDITION' => '#^/aktsii/#',
+    'RULE' => '',
     'ID' => 'bitrix:catalog.section',
     'PATH' => '/aktsii/index.php',
     'SORT' => 100,

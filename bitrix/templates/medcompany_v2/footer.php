@@ -1,7 +1,7 @@
 <? if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $mkCurUri = $APPLICATION->GetCurUri();
 $mkCurDir = $APPLICATION->GetCurDir();
-if ($mkCurUri == "/personal/profile/" || $mkCurUri == "/personal/profile/?login=yes") { ?></div><? } ?>
+?>
 </main>
 
 <footer class="footer mk-footer">
@@ -63,7 +63,7 @@ if ($mkCurUri == "/personal/profile/" || $mkCurUri == "/personal/profile/?login=
             </div>
         </div>
         <div class="mk-footer__bottom">
-            <span>© <?= date('Y') ?> <a href="https://t.me/cblpoFFum4uk">Popov</a></span>
+            <span>© <?= date('Y') ?> <a href="https://t.me/NordLineWeb" target="_blank" rel="noopener">@NordLineWeb</a><span class="mk-footer__sep" aria-hidden="true">·</span><a href="https://nordlineweb.ru/" target="_blank" rel="noopener">nordlineweb.ru</a></span>
         </div>
     </div>
 </footer>
@@ -86,9 +86,6 @@ if ($mkCurUri == "/personal/profile/" || $mkCurUri == "/personal/profile/?login=
 
 <?
 include __DIR__ . '/include/sprite.php';
-if (strpos($mkCurDir, '/services/') === 0 || strpos($mkCurDir, '/dostavka/') === 0) {
-    include __DIR__ . '/include/sprite_heavy.php';
-}
 ?>
 <script src="<?= SITE_TEMPLATE_PATH ?>/js/redesign.js?v=<?= @filemtime(__DIR__ . '/js/redesign.js') ?>" defer></script>
 </body>

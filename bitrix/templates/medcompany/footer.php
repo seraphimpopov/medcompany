@@ -83,8 +83,7 @@
             </div>
             <div class="row col-xl-12 footer__bottom-inner">
                 <div class="col-xl-3 col-md-3"></div>
-                <div class="col-xl-9 col-md-9 rights">© 2025 <a class="tg"
-                                                                href="https://t.me/cblpoFFum4uk">Popov</a>
+                <div class="col-xl-9 col-md-9 rights">© 2025 <a class="tg" href="https://t.me/NordLineWeb" target="_blank" rel="noopener">@NordLineWeb</a> · <a class="tg" href="https://nordlineweb.ru/" target="_blank" rel="noopener">nordlineweb.ru</a>
                 </div>
             </div>
         </div>

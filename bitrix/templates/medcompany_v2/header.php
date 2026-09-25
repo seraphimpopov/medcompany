@@ -284,7 +284,26 @@ if ($mkHiddenTitle): ?>
 <? elseif (!$mkNoTitle): ?>
     <div class="mk-container mk-page-head"><h1 class="mk-page-title"><? $APPLICATION->ShowTitle(false) ?></h1></div>
 <? endif ?>
-	<? if ($CurUri == "/personal/profile/" || $CurUri == "/personal/profile/?login=yes") { ?>
-<div class="container" style="display: flex;
-    justify-content: center;">
-<? } ?>
+<? if ($USER->IsAuthorized() && strpos($CurDir, '/personal/') === 0 && strpos($CurDir, '/personal/order/') !== 0):
+    $mkAccount = array(
+        array('/personal/profile/', 'Обзор', true),
+        array('/personal/profile/orders/', 'Текущие заказы', false),
+        array('/personal/profile/orders/?filter_history=Y', 'История заказов', false),
+        array('/personal/profile/user/', 'Личные данные', false),
+        array('/personal/profile/account/', 'Личный счёт', false),
+        array('/personal/profile/subscribes/', 'Подписки', false),
+        array('/personal/wishlist/', 'Избранное', false),
+        array('/personal/cart/', 'Корзина', false),
+    );
+    $mkHistory = isset($_GET['filter_history']) && $_GET['filter_history'] === 'Y';
+    ?>
+    <nav class="mk-container mk-account-nav" aria-label="Разделы личного кабинета">
+        <? foreach ($mkAccount as $mkA):
+            $mkPath = strtok($mkA[0], '?');
+            $mkIsHistory = strpos($mkA[0], 'filter_history') !== false;
+            $mkOn = $mkA[2] ? $CurDir === $mkPath : (strpos($CurDir, $mkPath) === 0 && $mkIsHistory === $mkHistory);
+            ?>
+            <a class="mk-account-nav__link<?= $mkOn ? ' is-active' : '' ?>" href="<?= $mkA[0] ?>"<?= $mkOn ? ' aria-current="page"' : '' ?>><?= $mkA[1] ?></a>
+        <? endforeach ?>
+    </nav>
+<? endif ?>

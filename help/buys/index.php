@@ -15,7 +15,11 @@ $APPLICATION->SetTitle("Покупки");
                 <a class="mk-pill mk-pill--outline" href="tel:+74852429560">+7 (4852) 42-95-60</a>
             </div>
         </div>
-        <img class="mk-buy__hero-img" src="/images/buys.png" alt="Оформление заказа в интернет-магазине" loading="lazy">
+        <img class="mk-buy__hero-img" src="/images/payment-photo.webp"
+             srcset="/images/payment-photo-640.webp 640w, /images/payment-photo.webp 1280w"
+             sizes="(max-width: 991px) calc(100vw - 32px), 600px"
+             width="1280" height="714" fetchpriority="high"
+             alt="Покупатель оплачивает заказ банковской картой на кассе в офисе МК">
     </section>
 
     <ol class="mk-buy__steps">

@@ -132,10 +132,22 @@
             badge.setAttribute('tabindex', '-1');
             badge.setAttribute('aria-hidden', 'true');
         }
+        var n = badge ? parseInt(badge.textContent, 10) || 0 : 0;
         if (icon) {
-            var n = badge ? parseInt(badge.textContent, 10) || 0 : 0;
             icon.setAttribute('aria-label', n ? 'Корзина, товаров: ' + n : 'Корзина, пусто');
         }
+        // Mobile header icons mirror the desktop counters
+        var favWrap = document.querySelector('.favor-list-wrap');
+        var favN = favWrap ? parseInt(favWrap.textContent, 10) || 0 : 0;
+        [['a[href="/personal/cart/"]', n, 'Корзина'], ['a[href="/personal/wishlist/"]', favN, 'Избранное']].forEach(function (cfg) {
+            var link = document.querySelector('.mk-header__mobile-icons ' + cfg[0]);
+            if (!link) return;
+            var b = link.querySelector('.mk-mbadge');
+            if (!b) { b = document.createElement('span'); b.className = 'mk-mbadge'; b.setAttribute('aria-hidden', 'true'); link.appendChild(b); }
+            b.textContent = cfg[1];
+            b.hidden = !cfg[1];
+            link.setAttribute('aria-label', cfg[1] ? cfg[2] + ', товаров: ' + cfg[1] : cfg[2]);
+        });
     }
 
     // Hero carousel: pause control, and no auto-rotation for reduced motion
@@ -161,6 +173,17 @@
             }
             btn.addEventListener('click', function () { set(!el.dataset.mkPaused); });
             el.appendChild(btn);
+            if (sel === '.slider_area' && !el.querySelector('.mk-slider-arrow')) {
+                [['prev', 'Предыдущий баннер', 'M15 6l-6 6 6 6'], ['next', 'Следующий баннер', 'M9 6l6 6-6 6']].forEach(function (a) {
+                    var arrow = document.createElement('button');
+                    arrow.type = 'button';
+                    arrow.className = 'mk-slider-arrow mk-slider-arrow--' + a[0];
+                    arrow.setAttribute('aria-label', a[1]);
+                    arrow.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="' + a[2] + '"/></svg>';
+                    arrow.addEventListener('click', function () { $el.slick(a[0] === 'prev' ? 'slickPrev' : 'slickNext'); });
+                    el.appendChild(arrow);
+                });
+            }
             set(reduce);
         });
     }
@@ -243,6 +266,297 @@
         }
     }
 
+    // Focus rings only while the visitor navigates with the keyboard
+    function initKeyboardMode() {
+        var body = document.body;
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Tab' || e.key.indexOf('Arrow') === 0) body.classList.add('mk-kbd');
+        }, true);
+        ['mousedown', 'pointerdown', 'touchstart'].forEach(function (type) {
+            document.addEventListener(type, function () { body.classList.remove('mk-kbd'); }, true);
+        });
+    }
+
+    // Transliteration so "ивоклар" finds "Ivoclar" and vice versa
+    var RU = { 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya' };
+    function normalize(s) {
+        s = String(s).toLowerCase().replace(/ё/g, 'е');
+        var lat = s.replace(/[а-я]/g, function (c) { return RU[c] || ''; });
+        // collapse spelling variants: k/c/q, ph/f, w/v, double letters, y/i
+        return lat.replace(/ph/g, 'f').replace(/[cq]/g, 'k').replace(/w/g, 'v').replace(/y/g, 'i').replace(/x/g, 'ks').replace(/(.)\1+/g, '$1').replace(/[^a-z0-9]/g, '');
+    }
+
+    // Sidebar lists (catalog + manufacturers) get an inline search
+    function initSidebarSearch() {
+        document.querySelectorAll('.sum_cat > a.cat').forEach(function (head) {
+            var list = head.nextElementSibling;
+            if (!list || head.dataset.mkSearch) return;
+            head.dataset.mkSearch = '1';
+            var wrap = document.createElement('div');
+            wrap.className = 'mk-side-head';
+            head.parentNode.insertBefore(wrap, head);
+            wrap.appendChild(head);
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'mk-side-head__btn';
+            btn.setAttribute('aria-label', 'Поиск: ' + head.textContent.trim().toLowerCase());
+            btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.4 5.5-1.4 1.4-5.5-5.4A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>';
+            wrap.appendChild(btn);
+            var input = document.createElement('input');
+            input.type = 'search';
+            input.className = 'mk-side-head__input';
+            input.placeholder = head.textContent.trim().toLowerCase().indexOf('производ') !== -1 ? 'Найти производителя' : 'Найти раздел';
+            input.setAttribute('aria-label', input.placeholder);
+            input.hidden = true;
+            wrap.appendChild(input);
+            var empty = document.createElement('p');
+            empty.className = 'mk-side-empty';
+            empty.textContent = 'Ничего не найдено';
+            empty.hidden = true;
+            list.parentNode.insertBefore(empty, list.nextSibling);
+            var items = list.querySelectorAll('.mk-side__item');
+            var skeleton = function (t) { return t.replace(/[aeiou]/g, ''); };
+            var filter = function () {
+                var q = normalize(input.value);
+                var qs = skeleton(q);
+                var shown = 0;
+                items.forEach(function (li) {
+                    var name = normalize(li.textContent);
+                    var ok = !q || name.indexOf(q) !== -1 || (qs.length >= 3 && skeleton(name).indexOf(qs) !== -1);
+                    li.hidden = !ok;
+                    if (ok) shown++;
+                });
+                empty.hidden = shown > 0;
+            };
+            var open = function (state) {
+                wrap.classList.toggle('is-searching', state);
+                input.hidden = !state;
+                btn.setAttribute('aria-label', state ? 'Закрыть поиск' : 'Поиск: ' + head.textContent.trim().toLowerCase());
+                btn.innerHTML = state
+                    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>'
+                    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.4 5.5-1.4 1.4-5.5-5.4A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>';
+                if (state) { input.focus(); } else { input.value = ''; filter(); }
+            };
+            btn.addEventListener('click', function () { open(!wrap.classList.contains('is-searching')); });
+            input.addEventListener('input', filter);
+            input.addEventListener('keydown', function (e) { if (e.key === 'Escape') open(false); });
+        });
+    }
+
+    // Banners: one height; near-matching banners fill the frame, others sit on their own edge colour
+    function fitBanners() {
+        var TARGET = 2.95;
+        document.querySelectorAll('.slider_area .slider_area__item').forEach(function (item) {
+            var img = item.querySelector('img');
+            if (!img || item.dataset.mkFit) return;
+            var apply = function () {
+                if (!img.naturalWidth) return;
+                item.dataset.mkFit = '1';
+                var ratio = img.naturalWidth / img.naturalHeight;
+                if (Math.abs(ratio / TARGET - 1) <= 0.2) {
+                    item.classList.add('mk-fit-cover');
+                    return;
+                }
+                item.classList.add('mk-fit-contain');
+                try {
+                    var c = document.createElement('canvas');
+                    var w = c.width = 48, h = c.height = Math.max(8, Math.round(48 / ratio));
+                    var ctx = c.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var d = ctx.getImageData(0, 0, w, h).data;
+                    var sum = [0, 0, 0], n = 0;
+                    var take = function (x, y) { var i = (y * w + x) * 4; sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; n++; };
+                    for (var x = 0; x < w; x++) { take(x, 0); take(x, h - 1); }
+                    for (var y = 0; y < h; y++) { take(0, y); take(w - 1, y); }
+                    item.style.backgroundColor = 'rgb(' + Math.round(sum[0] / n) + ',' + Math.round(sum[1] / n) + ',' + Math.round(sum[2] / n) + ')';
+                } catch (e) { /* cross-origin image: keep neutral background */ }
+            };
+            if (img.complete) apply(); else img.addEventListener('load', apply, { once: true });
+        });
+    }
+
+    // Product page: description blocks become tabs
+    function initProductTabs() {
+        var blocks = Array.prototype.filter.call(document.querySelectorAll('.mk-main .block-biography.row'), function (b) {
+            return b.querySelector('.block .title') && !b.closest('.bx-newsdetail, .mk-article') && document.querySelector('.product_row.row[id]');
+        });
+        if (blocks.length < 2 || document.querySelector('.mk-tabs')) return;
+        var box = document.createElement('section');
+        box.className = 'mk-tabs';
+        var bar = document.createElement('div');
+        bar.className = 'mk-tabs__bar';
+        bar.setAttribute('role', 'tablist');
+        box.appendChild(bar);
+        blocks[0].parentNode.insertBefore(box, blocks[0]);
+        blocks.forEach(function (block, i) {
+            var title = block.querySelector('.block .title');
+            var tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'mk-tabs__tab';
+            tab.id = 'mk-tab-' + i;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-controls', 'mk-panel-' + i);
+            tab.textContent = title.textContent.trim();
+            bar.appendChild(tab);
+            var panel = document.createElement('div');
+            panel.className = 'mk-tabs__panel';
+            panel.id = 'mk-panel-' + i;
+            panel.setAttribute('role', 'tabpanel');
+            panel.setAttribute('aria-labelledby', tab.id);
+            var text = block.querySelector('.block .text') || block.querySelector('.block');
+            panel.appendChild(text);
+            box.appendChild(panel);
+            block.remove();
+        });
+        // "Key: value" lists become a specs table; long plain text flows into columns
+        box.querySelectorAll('.mk-tabs__panel').forEach(function (panel) {
+            var text = panel.querySelector('.text') || panel.firstElementChild;
+            if (!text) return;
+            var items = text.querySelectorAll('li');
+            var pairs = Array.prototype.map.call(items, function (li) {
+                var t = li.textContent.replace(/\s+/g, ' ').trim();
+                var i = t.indexOf(':');
+                return i > 0 && i < 60 ? [t.slice(0, i).trim(), t.slice(i + 1).trim()] : null;
+            });
+            if (items.length >= 2 && pairs.every(Boolean)) {
+                var table = document.createElement('table');
+                table.className = 'mk-specs';
+                table.innerHTML = '<tbody>' + pairs.map(function (p) { return '<tr><th scope="row">' + esc(p[0]) + '</th><td>' + esc(p[1]) + '</td></tr>'; }).join('') + '</tbody>';
+                text.innerHTML = '';
+                text.appendChild(table);
+            } else if (!items.length && text.textContent.trim().length > 700) {
+                text.classList.add('mk-cols');
+            }
+        });
+        var tabs = bar.querySelectorAll('.mk-tabs__tab');
+        var select = function (idx) {
+            tabs.forEach(function (t, i) {
+                var on = i === idx;
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+                t.tabIndex = on ? 0 : -1;
+                document.getElementById('mk-panel-' + i).hidden = !on;
+            });
+        };
+        tabs.forEach(function (t, i) {
+            t.addEventListener('click', function () { select(i); });
+            t.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                    var n = (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+                    select(n);
+                    tabs[n].focus();
+                }
+            });
+        });
+        select(0);
+    }
+
+    // Basket: "select all" + delete selected
+    function initBasketSelection() {
+        var table = document.getElementById('basket-item-table');
+        var header = document.querySelector('.basket-items-list-header');
+        if (!table || !header) return;
+        var rows = function () { return Array.prototype.slice.call(table.querySelectorAll('tr.basket-items-list-item-container')); };
+        var bar = header.querySelector('.mk-basket-select');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'mk-basket-select';
+            bar.innerHTML = '<label class="mk-check mk-check--inline"><input type="checkbox" class="mk-select-all" checked><span class="mk-check__box" aria-hidden="true"></span><span class="mk-check__text">Выбрать все</span></label>' +
+                '<button type="button" class="mk-basket-delete" disabled>Удалить выбранные</button>';
+            header.insertBefore(bar, header.firstChild);
+            bar.querySelector('.mk-select-all').addEventListener('change', function () {
+                var on = this.checked;
+                rows().forEach(function (r) { var c = r.querySelector('.mk-row-check input'); if (c) c.checked = on; });
+                sync();
+            });
+            bar.querySelector('.mk-basket-delete').addEventListener('click', function () {
+                var chosen = rows().filter(function (r) { var c = r.querySelector('.mk-row-check input'); return c && c.checked; });
+                if (!chosen.length) return;
+                if (!window.confirm('Удалить из корзины выбранные товары (' + chosen.length + ')?')) return;
+                chosen.forEach(function (r, i) {
+                    var del = r.querySelector('[data-entity="basket-item-delete"]');
+                    if (del) setTimeout(function () { del.click(); }, i * 350);
+                });
+            });
+        }
+        var sync = function () {
+            var all = rows();
+            var checked = all.filter(function (r) { var c = r.querySelector('.mk-row-check input'); return c && c.checked; });
+            var master = bar.querySelector('.mk-select-all');
+            master.checked = all.length > 0 && checked.length === all.length;
+            master.indeterminate = checked.length > 0 && checked.length < all.length;
+            var del = bar.querySelector('.mk-basket-delete');
+            del.disabled = checked.length === 0;
+            del.textContent = checked.length ? 'Удалить выбранные (' + checked.length + ')' : 'Удалить выбранные';
+        };
+        rows().forEach(function (r) {
+            if (r.querySelector('.mk-row-check')) return;
+            var cell = r.querySelector('.basket-items-list-item-descriptions-inner');
+            if (!cell) return;
+            var name = (r.querySelector('.basket-item-info-name') || {}).textContent || 'товар';
+            var label = document.createElement('label');
+            label.className = 'mk-check mk-check--inline mk-row-check';
+            label.innerHTML = '<input type="checkbox" checked aria-label="Выбрать: ' + esc(name.trim()) + '"><span class="mk-check__box" aria-hidden="true"></span>';
+            cell.insertBefore(label, cell.firstChild);
+            label.querySelector('input').addEventListener('change', sync);
+        });
+        sync();
+    }
+
+    // Search page: sort select becomes the same chip bar as in the catalog
+    function initSearchSort() {
+        var toolbar = document.querySelector('.ms-toolbar');
+        if (!toolbar || toolbar.querySelector('.mk-sortbar')) return;
+        var select = toolbar.querySelector('select');
+        if (!select) return;
+        var bar = document.createElement('div');
+        bar.className = 'mk-sortbar mk-sortbar--search';
+        bar.innerHTML = '<span class="mk-sortbar__label">Сортировка:</span><div class="mk-sortbar__options"></div>';
+        var opts = bar.querySelector('.mk-sortbar__options');
+        Array.prototype.forEach.call(select.options, function (o) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'mk-sortbar__opt' + (o.selected ? ' is-active' : '');
+            b.textContent = o.textContent.trim();
+            if (o.selected) b.setAttribute('aria-current', 'true');
+            b.addEventListener('click', function () {
+                select.value = o.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                if (toolbar.tagName === 'FORM' && !toolbar.classList.contains('ms-toolbar-enhanced')) toolbar.submit();
+            });
+            opts.appendChild(b);
+        });
+        var label = select.closest('label');
+        (label || select).classList.add('mk-visually-hidden-control');
+        toolbar.insertBefore(bar, toolbar.firstChild);
+    }
+
+    // Checkout: no height tweening or forced scroll jumps
+    function calmCheckout() {
+        var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
+        if (!C || C.__mkCalm || !BX.easing) return;
+        C.__mkCalm = true;
+        var Real = BX.easing;
+        var Instant = function (opts) { this.opts = opts; };
+        Instant.prototype.animate = function () {
+            var o = this.opts;
+            var realScroll = window.scrollTo;
+            window.scrollTo = function (x, y) { realScroll.call(window, { top: typeof y === 'number' ? y : 0, behavior: 'smooth' }); };
+            try { if (o.step) o.step(o.finish); } finally { window.scrollTo = realScroll; }
+            if (o.complete) o.complete();
+        };
+        Instant.prototype.stop = function () {};
+        for (var k in Real) { if (Real.hasOwnProperty(k)) Instant[k] = Real[k]; }
+        Object.keys(C).forEach(function (name) {
+            var fn = C[name];
+            if (typeof fn !== 'function' || name === 'init') return;
+            C[name] = function () {
+                var prev = BX.easing;
+                BX.easing = Instant;
+                try { return fn.apply(this, arguments); } finally { BX.easing = prev; }
+            };
+        });
+    }
+
     // Keep keyboard focus inside the open drawer
     function trapDrawerFocus() {
         var drawer = document.getElementById('mk-drawer');
@@ -266,8 +580,19 @@
         labelCart();
         initContacts();
         syncFavourites();
+        initKeyboardMode();
+        initSidebarSearch();
+        initProductTabs();
+        initSearchSort();
+        calmCheckout();
+        initBasketSelection();
+        fitBanners();
+        setTimeout(fitBanners, 800);
+        if (window.BX && BX.addCustomEvent) {
+            BX.addCustomEvent('OnBasketChange', function () { setTimeout(initBasketSelection, 300); });
+        }
         document.addEventListener('click', function (e) {
-            if (e.target.closest('.bazarow_add_favor')) { setTimeout(syncFavourites, 700); setTimeout(syncFavourites, 1600); }
+            if (e.target.closest('.bazarow_add_favor')) { setTimeout(syncFavourites, 700); setTimeout(function () { syncFavourites(); labelCart(); }, 1600); }
         });
         // slick initialises on jQuery ready; give it a tick
         setTimeout(initSliderControls, 300);
@@ -282,7 +607,7 @@
             new MutationObserver(function () {
                 if (pending) return;
                 pending = true;
-                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); });
+                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); });
             }).observe(document.querySelector('.mk-main') || document.body, { childList: true, subtree: true });
         }
     }

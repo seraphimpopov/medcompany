@@ -106,27 +106,43 @@ if (empty($availablePages))
 else
 {
 	?>
-	<div class="row">
+	<?
+	$mkHints = array(
+		'fa-calculator' => 'Статусы и оплата текущих заказов',
+		'fa-credit-card' => 'Баланс и пополнение счёта',
+		'fa-user-secret' => 'Имя, телефон, почта и пароль',
+		'fa-list-alt' => 'Выполненные и отменённые заказы',
+		'fa-list-ol' => 'Сохранённые данные для заказов',
+		'fa-shopping-cart' => 'Товары, готовые к оформлению',
+		'fa-envelope' => 'Уведомления о поступлении товаров',
+		'fa-info-circle' => 'Адреса и телефоны офисов',
+	);
+	?>
+	<nav class="mk-account-tiles" aria-label="Личный кабинет">
 		<?
 		foreach ($availablePages as $blockElement)
 		{
+			$mkHint = '';
+			foreach ($mkHints as $mkIcon => $mkText)
+			{
+				if (strpos($blockElement['icon'], $mkIcon) !== false)
+				{
+					$mkHint = $mkText;
+				}
+			}
 			?>
-			<div class="col-lg-3 col-md-6 col-sm-6 col">
-				<div class="sale-personal-section-index-block bx-theme-<?=$theme?>">
-					<a class="sale-personal-section-index-block-link" href="<?=htmlspecialcharsbx($blockElement['path'])?>">
-						<span class="sale-personal-section-index-block-ico">
-							<?=$blockElement['icon']?>
-						</span>
-						<h2 class="sale-personal-section-index-block-name">
-							<?=htmlspecialcharsbx($blockElement['name'])?>
-						</h2>
-					</a>
-				</div>
-			</div>
+			<a class="mk-account-tile" href="<?=htmlspecialcharsbx($blockElement['path'])?>">
+				<span class="mk-account-tile__ico" aria-hidden="true"><?=$blockElement['icon']?></span>
+				<span class="mk-account-tile__body">
+					<span class="mk-account-tile__name"><?=htmlspecialcharsbx($blockElement['name'])?></span>
+					<? if ($mkHint): ?><span class="mk-account-tile__hint"><?=$mkHint?></span><? endif ?>
+				</span>
+				<span class="mk-account-tile__arrow" aria-hidden="true"></span>
+			</a>
 			<?
 		}
 		?>
-	</div>
+	</nav>
 	<?
 }
 ?>
