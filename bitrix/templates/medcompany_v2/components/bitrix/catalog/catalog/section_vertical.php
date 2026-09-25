@@ -45,9 +45,9 @@ while ($ar_result = $db_list->GetNext()) {
 
 ?>
 <div class="container">
-    <div class="row mb-4 bx-<?= $arParams["TEMPLATE_THEME"] ?>">
+    <div class="row mb-4 bx-<?= $arParams["TEMPLATE_THEME"] ?><?= (($isFilter || $isSidebar) && !isset($isHaveSections)) ? ' mk-catalog' : '' ?>">
         <? if (($isFilter || $isSidebar) && !isset($isHaveSections)): ?>
-            <div class="col-lg-3 col-md-4 col-sm-5<?= (isset($arParams['FILTER_HIDE_ON_MOBILE']) && $arParams['FILTER_HIDE_ON_MOBILE'] === 'Y' ? ' d-none d-sm-block' : '') ?>">
+            <div class="mk-catalog__filter col-lg-3 col-md-4 col-sm-5<?= (isset($arParams['FILTER_HIDE_ON_MOBILE']) && $arParams['FILTER_HIDE_ON_MOBILE'] === 'Y' ? ' d-none d-sm-block' : '') ?>">
                 <?
                 //region Filter
                 if ($isFilter && !isset($isHaveSections)): ?>
@@ -112,7 +112,7 @@ while ($ar_result = $db_list->GetNext()) {
         <? endif ?>
 
 
-        <div class="pb-4 <?= (($isFilter && $isSidebar) ? "col-lg-9 col-md-8 col-sm-7" : "col") ?>">
+        <div class="mk-catalog__main pb-4 <?= (($isFilter && $isSidebar) ? "col-lg-9 col-md-8 col-sm-7" : "col") ?>">
             <?
             if (ModuleManager::isModuleInstalled("sale")) {
                 $arRecomData = array();
@@ -250,6 +250,7 @@ while ($ar_result = $db_list->GetNext()) {
                     $sectionListParams["COUNT_ELEMENTS_FILTER"] = "CNT_AVAILABLE";
                 }
             }
+            echo '<div class="mk-catalog__head">';
             $APPLICATION->IncludeComponent(
                 "bitrix:catalog.section.list",
                 "list",
@@ -257,6 +258,7 @@ while ($ar_result = $db_list->GetNext()) {
                 $component,
                 array("HIDE_ICONS" => "Y")
             );
+            echo '</div>';
             unset($sectionListParams);
             //endregion
 
@@ -319,6 +321,7 @@ if (!isset($isHaveSections)): ?>
     </div>
 <? endif;
             //endregion
+            echo '<div class="mk-catalog__items">';
             if (!isset($isHaveSections)) {
                 $intSectionID = $APPLICATION->IncludeComponent(
                     "bitrix:catalog.section",
@@ -449,6 +452,7 @@ if (!isset($isHaveSections)): ?>
                     $component
                 );
             }
+            echo '</div>';
 
             $GLOBALS['CATALOG_CURRENT_SECTION_ID'] = $intSectionID;
 

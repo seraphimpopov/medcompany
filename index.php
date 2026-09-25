@@ -203,7 +203,45 @@ $APPLICATION->SetTitle("Интернет-магазин \"МК Ярославл�
                     <div class="body__body">
                         <div class="body__body-inner">
                             <?
-                            $GLOBALS['TheBest'] = array("PROPERTY_90_VALUE" => "Лучшее");
+                                                        if (!function_exists('mkHomeProductIds')) {
+                                // Tagged products first, then filled up to $count with in-stock items that have a picture and a price.
+                                function mkHomeProductIds($tag, $count, $fillOrder)
+                                {
+                                    $cache = new CPHPCache();
+                                    $cacheId = 'mk_home_' . md5($tag . $count . $fillOrder);
+                                    if ($cache->InitCache(3600, $cacheId, '/mk_home_products')) {
+                                        return $cache->GetVars();
+                                    }
+                                    $cache->StartDataCache();
+                                    $base = array(
+                                        'IBLOCK_ID' => 16, 'ACTIVE' => 'Y', 'CATALOG_AVAILABLE' => 'Y', '>CATALOG_PRICE_3' => 0,
+                                        array('LOGIC' => 'OR', '!PREVIEW_PICTURE' => false, '!DETAIL_PICTURE' => false),
+                                    );
+                                    $ids = array();
+                                    $res = CIBlockElement::GetList(array('SORT' => 'ASC', 'ID' => 'DESC'), array_merge($base, array('PROPERTY_90_VALUE' => $tag)), false, array('nTopCount' => $count), array('ID'));
+                                    while ($row = $res->Fetch()) {
+                                        $ids[] = (int)$row['ID'];
+                                    }
+                                    if (count($ids) < $count) {
+                                        $fill = $base;
+                                        if ($ids) {
+                                            $fill['!ID'] = $ids;
+                                        }
+                                        $res = CIBlockElement::GetList(array($fillOrder => 'DESC', 'ID' => 'DESC'), $fill, false, array('nTopCount' => $count - count($ids)), array('ID'));
+                                        while ($row = $res->Fetch()) {
+                                            $ids[] = (int)$row['ID'];
+                                        }
+                                    }
+                                    if (!$ids) {
+                                        $ids = array(0);
+                                    }
+                                    $cache->EndDataCache($ids);
+                                    return $ids;
+                                }
+                            }
+                            CModule::IncludeModule('iblock');
+                            CModule::IncludeModule('catalog');
+                            $GLOBALS['TheBest'] = array("ID" => mkHomeProductIds("Лучшее", 6, "SHOW_COUNTER"));
                             ?><? $APPLICATION->IncludeComponent(
                                 "bitrix:catalog.top",
                                 "top1",
@@ -224,7 +262,7 @@ $APPLICATION->SetTitle("Интернет-магазин \"МК Ярославл�
                                     "CUSTOM_FILTER" => "{\"CLASS_ID\":\"CondGroup\",\"DATA\":{\"All\":\"AND\",\"True\":\"True\"},\"CHILDREN\":[]}",
                                     "DETAIL_URL" => "/catalog/#SECTION_CODE#/#ELEMENT_CODE#/",
                                     "DISPLAY_COMPARE" => "N",
-                                    "ELEMENT_COUNT" => "4",
+                                    "ELEMENT_COUNT" => "6",
                                     "ELEMENT_SORT_FIELD" => "sort",
                                     "ELEMENT_SORT_FIELD2" => "id",
                                     "ELEMENT_SORT_ORDER" => "asc",
@@ -281,7 +319,7 @@ $APPLICATION->SetTitle("Интернет-магазин \"МК Ярославл�
                     <div class="body__body">
                         <div class="body__body-inner">
                             <?
-                            $GLOBALS['TheNew'] = array("PROPERTY_90_VALUE" => "Новое");
+                            $GLOBALS['TheNew'] = array("ID" => mkHomeProductIds("Новое", 6, "DATE_CREATE"));
                             ?><? $APPLICATION->IncludeComponent(
                                 "bitrix:catalog.top",
                                 "top1",
@@ -302,7 +340,7 @@ $APPLICATION->SetTitle("Интернет-магазин \"МК Ярославл�
                                     "CUSTOM_FILTER" => "{\"CLASS_ID\":\"CondGroup\",\"DATA\":{\"All\":\"AND\",\"True\":\"True\"},\"CHILDREN\":[]}",
                                     "DETAIL_URL" => "/catalog/#SECTION_CODE#/#ELEMENT_CODE#/",
                                     "DISPLAY_COMPARE" => "N",
-                                    "ELEMENT_COUNT" => "4",
+                                    "ELEMENT_COUNT" => "6",
                                     "ELEMENT_SORT_FIELD" => "sort",
                                     "ELEMENT_SORT_FIELD2" => "id",
                                     "ELEMENT_SORT_ORDER" => "asc",

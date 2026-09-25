@@ -530,6 +530,168 @@
         toolbar.insertBefore(bar, toolbar.firstChild);
     }
 
+    // Search page: the filter gets the catalog filter's markup (sections, check lists, "Показать" / "Сбросить")
+    function initSearchFilter() {
+        var form = document.getElementById('ms-filter-form');
+        if (!form || form.dataset.mkFilter) return;
+        form.dataset.mkFilter = '1';
+        form.classList.add('mk-filter', 'mk-sfilter');
+        var card = document.createElement('div');
+        card.className = 'smart-filter';
+        var uid = 0;
+
+        var section = function (title) {
+            var box = document.createElement('div');
+            box.className = 'smart-filter-parameters-box bx-active';
+            var head = document.createElement('button');
+            head.type = 'button';
+            head.className = 'smart-filter_title';
+            head.setAttribute('aria-expanded', 'true');
+            head.textContent = title;
+            head.addEventListener('click', function () {
+                var open = !box.classList.contains('bx-active');
+                box.classList.toggle('bx-active', open);
+                head.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+            var collapse = document.createElement('div');
+            collapse.className = 'mk-collapse';
+            var inner = document.createElement('div');
+            inner.className = 'mk-collapse__inner';
+            collapse.appendChild(inner);
+            box.appendChild(head);
+            box.appendChild(collapse);
+            card.appendChild(box);
+            return inner;
+        };
+        var checkRow = function (input, text, count) {
+            var label = document.createElement('label');
+            label.className = 'mk-check' + (input.type === 'radio' ? ' mk-check--radio' : '');
+            if (!input.id) input.id = 'mk-sf-' + (++uid);
+            label.setAttribute('for', input.id);
+            label.appendChild(input);
+            label.insertAdjacentHTML('beforeend', '<span class="mk-check__box" aria-hidden="true"></span>');
+            var t = document.createElement('span');
+            t.className = 'mk-check__text';
+            t.textContent = text;
+            label.appendChild(t);
+            if (count) {
+                var c = document.createElement('span');
+                c.className = 'mk-check__count';
+                c.textContent = count;
+                label.appendChild(c);
+            }
+            return label;
+        };
+
+        // price
+        var range = form.querySelector('.ms-price-range');
+        var active = false;
+        if (range) {
+            var inputs = range.querySelectorAll('input');
+            var grid = document.createElement('div');
+            grid.className = 'smart-filter-digits mk-range-inputs';
+            ['от', 'до'].forEach(function (word, i) {
+                var inp = inputs[i];
+                if (!inp) return;
+                if (inp.value) active = true;
+                var l = document.createElement('label');
+                l.className = 'mk-range-inputs__field';
+                l.innerHTML = '<span>' + word + '</span>';
+                inp.placeholder = '';
+                inp.setAttribute('inputmode', 'numeric');
+                inp.setAttribute('aria-label', 'Цена ' + word);
+                l.appendChild(inp);
+                grid.appendChild(l);
+            });
+            section('Цена, ₽').appendChild(grid);
+            range.remove();
+        }
+
+        // manufacturer: single choice, so radios with counts instead of a select
+        var select = form.querySelector('select[name="brand"]');
+        if (select) {
+            var inner = section('Производитель');
+            var list = document.createElement('div');
+            list.className = 'mk-checklist';
+            list.setAttribute('role', 'radiogroup');
+            list.setAttribute('aria-label', 'Производитель');
+            Array.prototype.forEach.call(select.options, function (o) {
+                var m = o.textContent.trim().match(/^(.*?)\s*\((\d+)\)\s*$/);
+                var radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'brand';
+                radio.value = o.value;
+                radio.checked = o.selected;
+                if (o.selected && o.value) active = true;
+                list.appendChild(checkRow(radio, m ? m[1] : o.textContent.trim(), m ? m[2] : ''));
+            });
+            if (select.options.length > 9) {
+                var search = document.createElement('input');
+                search.type = 'search';
+                search.className = 'mk-filter-search';
+                search.placeholder = 'Найти: производитель';
+                search.setAttribute('aria-label', 'Поиск по списку производителей');
+                search.autocomplete = 'off';
+                search.addEventListener('input', function () {
+                    var q = normalize(search.value);
+                    list.querySelectorAll('.mk-check').forEach(function (row) {
+                        row.hidden = !!q && normalize(row.textContent).indexOf(q) === -1;
+                    });
+                });
+                inner.appendChild(search);
+            }
+            inner.appendChild(list);
+            (select.closest('label') || select).remove();
+        }
+
+        // stock / photo switches
+        var checks = form.querySelectorAll('label.ms-check');
+        if (checks.length) {
+            var group = document.createElement('div');
+            group.className = 'mk-checklist';
+            checks.forEach(function (l) {
+                var inp = l.querySelector('input');
+                if (!inp) return;
+                if (inp.checked) active = true;
+                group.appendChild(checkRow(inp, l.textContent.trim().replace(/^Только /, 'Только '), ''));
+                l.remove();
+            });
+            section('Наличие и фото').appendChild(group);
+        }
+
+        var submit = form.querySelector('.ms-primary');
+        var reset = form.querySelector('.ms-reset');
+        var actions = document.createElement('div');
+        actions.className = 'smart-filter_bottons';
+        if (submit) {
+            submit.className = 'btn mk-filter-apply';
+            submit.textContent = 'Показать';
+            actions.appendChild(submit);
+        }
+        if (reset) {
+            reset.className = 'mk-filter-reset';
+            reset.hidden = !active;
+            actions.appendChild(reset);
+        }
+        form.appendChild(card);
+        form.appendChild(actions);
+        var details = form.closest('.ms-filter-details');
+        if (details) details.classList.add('mk-sfilter-wrap');
+    }
+
+    // Breadcrumbs: "…" unfolds the middle of a long path
+    function initCrumbs() {
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest && e.target.closest('.mk-crumbs__more');
+            if (!btn) return;
+            var nav = btn.closest('.mk-crumbs');
+            nav.classList.add('is-expanded');
+            btn.setAttribute('aria-expanded', 'true');
+            var first = nav.querySelector('.mk-crumbs__item--folded a');
+            if (first) first.focus();
+        });
+    }
+
     // Checkout: no height tweening or forced scroll jumps
     function calmCheckout() {
         var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
@@ -584,6 +746,8 @@
         initSidebarSearch();
         initProductTabs();
         initSearchSort();
+        initSearchFilter();
+        initCrumbs();
         calmCheckout();
         initBasketSelection();
         fitBanners();

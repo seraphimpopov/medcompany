@@ -2139,3 +2139,89 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 /* payment photo in the "Оплата" hero: keep the card, terminal and customer in frame */
 .mk-buy__hero-img { object-position: 65% 50%; }
 .mk-footer__sep { margin: 0 8px; opacity: .6; }
+
+/* ---------- section page: full-width title, filter level with the first row of cards, sticky filter ---------- */
+.mk-v2 .row.mk-catalog { grid-template-rows: auto auto auto; row-gap: 0 !important; }
+.mk-v2 .row.mk-catalog > .mk-catalog__main { display: contents !important; }
+.mk-v2 .mk-catalog__main > * { grid-column: 2; min-width: 0; }
+.mk-v2 .mk-catalog__main > .mk-catalog__head { grid-column: 1 / -1; grid-row: 1; }
+.mk-v2 .mk-catalog__main > .mk-sortbar { grid-row: 2; }
+.mk-v2 .mk-catalog__main > .mk-catalog__items { grid-row: 3; }
+.mk-v2 .row.mk-catalog > .mk-catalog__filter { grid-column: 1; grid-row: 3; align-self: stretch; }
+.mk-v2 .mk-catalog .bx-sidebar-block { position: sticky; top: 16px; }
+/* the filter card keeps its size on screen: its own content scrolls, "Показать" / "Сбросить" stay visible below */
+@media (min-width: 992px) {
+    .mk-v2 .mk-catalog .mk-filter .smart-filter {
+        max-height: calc(100vh - 32px - 124px); overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin; scrollbar-color: var(--mk-border-strong) transparent;
+    }
+    .mk-v2 .mk-catalog .mk-filter .smart-filter::-webkit-scrollbar { width: 6px; }
+    .mk-v2 .mk-catalog .mk-filter .smart-filter::-webkit-scrollbar-thumb { background: var(--mk-border-strong); border-radius: 99px; }
+    .mk-v2 .mk-catalog .mk-filter .smart-filter::-webkit-scrollbar-track { background: transparent; margin: 14px 0; }
+}
+@media (max-width: 991px) {
+    .mk-v2 .row.mk-catalog { grid-template-rows: none; }
+    .mk-v2 .mk-catalog__main > *, .mk-v2 .mk-catalog__main > .mk-catalog__head { grid-column: 1; }
+    .mk-v2 .row.mk-catalog > .mk-catalog__filter { grid-column: 1; grid-row: 2; }
+    .mk-v2 .mk-catalog__main > .mk-sortbar { grid-row: 3; }
+    .mk-v2 .mk-catalog__main > .mk-catalog__items { grid-row: 4; }
+    .mk-v2 .mk-catalog .bx-sidebar-block { position: static; }
+}
+
+/* price slider: only the chosen range is green, the rest of the track is grey */
+.mk-v2 .smart-filter-slider-range { background: transparent !important; }
+.mk-v2 .smart-filter-slider-track { background: #d6ddd3 !important; }
+
+/* home product blocks: Bitrix splits items into rows of 4, so all rows share one grid and 6 items fill 2 rows of 3 */
+.mk-v2 .catalog-top:has(> .row) {
+    display: grid !important; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; align-items: stretch;
+}
+.mk-v2 .catalog-top > .row { display: contents !important; }
+.mk-v2 .catalog-top > :not(.row) { grid-column: 1 / -1; }
+@media (max-width: 575px) {
+    .mk-v2 .catalog-top:has(> .row) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+}
+
+/* product descriptions: check icons only, no browser bullets (some texts have <li> without <ul>) */
+.mk-v2 .mk-tabs__panel li, .mk-v2 .mk-prose li, .mk-v2 .block-biography li { list-style: none; }
+.mk-v2 .mk-tabs__panel .text > li { margin: 0 0 8px; }
+
+/* sidebar search: the field takes the whole head row, the title hides while searching */
+.mk-v2 .mk-side-head.is-searching > a.cat { display: none !important; }
+.mk-v2 .mk-side-head.is-searching { padding: 2px 0 8px; gap: 8px; }
+.mk-v2 .mk-side-head.is-searching .mk-side-head__input { flex: 1 1 auto; width: 100%; }
+
+/* ---------- search page filter = catalog filter ---------- */
+.mk-v2 .ms-filter-details.mk-sfilter-wrap { background: transparent !important; border: 0 !important; border-radius: 0; padding: 0 !important; box-shadow: none !important; }
+.mk-v2 .ms-filter-form.mk-sfilter { display: block !important; padding: 0 !important; margin: 0; }
+.mk-v2 .mk-sfilter .smart-filter-parameters-box { border-bottom: 1px solid var(--mk-border); }
+.mk-v2 .mk-sfilter .smart-filter-parameters-box:last-child { border-bottom: 0; }
+.mk-v2 .mk-sfilter .mk-range-inputs { margin-bottom: 4px; }
+.mk-v2 .mk-sfilter a.mk-filter-reset { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.mk-v2 .mk-sfilter a.mk-filter-reset[hidden] { display: none; }
+.mk-check--radio .mk-check__box { border-radius: 50%; }
+.mk-check--radio .mk-check__box::after { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #fff; transform: none; }
+@media (min-width: 768px) {
+    .mk-v2 .mk-sfilter-wrap > summary { display: none !important; }
+}
+@media (max-width: 767px) {
+    .mk-v2 .mk-sfilter-wrap > summary {
+        display: flex !important; align-items: center; justify-content: center; gap: 10px; min-height: 48px !important; margin: 0 0 14px; padding: 0 18px !important;
+        border: 1.5px solid var(--mk-primary) !important; border-radius: 999px; background: #fff; color: var(--mk-primary); font: 700 15px var(--mk-font) !important;
+    }
+    .mk-v2 .mk-sfilter-wrap > summary > span { display: none; }
+    .mk-v2 .mk-sfilter-wrap > summary::after { border-color: var(--mk-primary) !important; }
+}
+/* desktop: filter level with the first row of cards, sticks while scrolling, its content scrolls inside */
+@media (min-width: 992px) {
+    .mk-v2 .ms-layout:has(.mk-sfilter) { grid-template-columns: 272px minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 24px; row-gap: 0; align-items: start; }
+    .mk-v2 .ms-layout:has(.mk-sfilter) > .ms-results { display: contents; }
+    .mk-v2 .ms-layout:has(.mk-sfilter) > .ms-results > * { grid-column: 2; min-width: 0; }
+    .mk-v2 .ms-layout:has(.mk-sfilter) > .ms-results > .ms-toolbar { grid-row: 1; }
+    .mk-v2 .ms-layout:has(.mk-sfilter) > .ms-results > .ms-grid { grid-row: 2; }
+    .mk-v2 .ms-layout:has(.mk-sfilter) > .ms-sidebar { grid-column: 1; grid-row: 2; align-self: start; position: sticky; top: 16px; margin: 0; }
+    .mk-v2 .mk-sfilter .smart-filter {
+        max-height: max(260px, calc(100vh - 290px)); overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin; scrollbar-color: var(--mk-border-strong) transparent;
+    }
+}
