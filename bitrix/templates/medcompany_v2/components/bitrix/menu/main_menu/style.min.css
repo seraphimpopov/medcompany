@@ -1,0 +1,1 @@
+.main_menu{list-style:none;margin:0;padding:0;text-align:center}.main_menu li{display:inline-block}.main_menu a{color:var(--color2);text-decoration:none;font-size:18px;padding:5px 15px;transition:.5s}.main_menu a:hover{color:var(--color1)}.main_menu a:active{color:var(--color1)}

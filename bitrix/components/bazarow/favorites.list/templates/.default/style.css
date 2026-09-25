@@ -1,0 +1,21 @@
+.bazarow_favorites_table {
+  border-collapse: collapse;
+  border: 1px solid;
+}
+.bazarow_favorites_table th, .bazarow_favorites_table td {
+  border: 1px solid;
+  padding: 5px;
+}
+.bazarow_favorites_table td:empty {
+  background: #ccc;
+}
+.bazarow_favorites_table tr:nth-child(2n+1){
+   background:white;
+}
+
+.bazarow_favorites_table tr:nth-child(2n){
+   background:#ebf4f8;
+}
+.bazarow_favorites_table th {
+  background: #f5f8ec;
+}

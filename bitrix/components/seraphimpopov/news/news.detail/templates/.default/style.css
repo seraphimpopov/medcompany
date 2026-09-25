@@ -1,0 +1,12 @@
+.news-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.news-item {
+    margin-bottom: 20px;
+}
+
+.news-item h2 {
+    font-size: 24px;
+}

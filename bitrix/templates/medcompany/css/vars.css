@@ -1,0 +1,89 @@
+:root {
+  --color1: #286124;
+  --color2: #626971;
+  --color3: #286124;
+  --color4: rgba(42, 42, 42, 0.06);
+  --radius: 5px; }
+
+/*
+<svg class="icon">
+  <use xlink:href="#arrow-circle-right-svgrepo-com"></use>
+</svg><svg class="icon">
+  <use xlink:href="#arrowleft"></use>
+</svg><svg class="icon">
+  <use xlink:href="#arrowright"></use>
+</svg><svg class="icon">
+  <use xlink:href="#baseline-phone"></use>
+</svg><svg class="icon">
+  <use xlink:href="#baseline-star"></use>
+</svg><svg class="icon">
+  <use xlink:href="#cart-outline"></use>
+</svg><svg class="icon">
+  <use xlink:href="#close_FILL0_wght400_GRAD0_opsz24"></use>
+</svg><svg class="icon">
+  <use xlink:href="#clock-outline"></use>
+</svg><svg class="icon">
+  <use xlink:href="#delete-outline"></use>
+</svg><svg class="icon">
+  <use xlink:href="#done_FILL0_wght400_GRAD0_opsz24"></use>
+</svg><svg class="icon">
+  <use xlink:href="#email_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#favorite_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#geo-alt"></use>
+</svg><svg class="icon">
+  <use xlink:href="#keyboard_arrow_left_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#keyboard_arrow_left_black_36dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#keyboard_arrow_right_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#keyboard_arrow_right_black_36dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#like"></use>
+</svg><svg class="icon">
+  <use xlink:href="#location_on_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#mail"></use>
+</svg><svg class="icon">
+  <use xlink:href="#minus"></use>
+</svg><svg class="icon">
+  <use xlink:href="#outline-shopping-cart"></use>
+</svg><svg class="icon">
+  <use xlink:href="#outline-star-outline"></use>
+</svg><svg class="icon">
+  <use xlink:href="#phone_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#plus-line"></use>
+</svg><svg class="icon">
+  <use xlink:href="#pulse"></use>
+</svg><svg class="icon">
+  <use xlink:href="#search_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#shop"></use>
+</svg><svg class="icon">
+  <use xlink:href="#shopping_cart_black_18dp"></use>
+</svg><svg class="icon">
+  <use xlink:href="#star_FILL0_wght400_GRAD0_opsz48"></use>
+</svg><svg class="icon">
+  <use xlink:href="#star-half"></use>
+</svg><svg class="icon">
+  <use xlink:href="#star"></use>
+</svg><svg class="icon">
+  <use xlink:href="#tick"></use>
+</svg><svg class="icon">
+  <use xlink:href="#account_circle_black_18dp"></use>
+</svg>
+<svg class="icon">
+  <use xlink:href="#baseline-phone"></use>
+</svg>
+<svg class="icon">
+  <use xlink:href="#arrow-back-circle-outline"></use>
+</svg>
+<svg class="icon">
+  <use xlink:href="#arrow-forward-circle-outline"></use>
+</svg>
+ */
+
+/*# sourceMappingURL=vars.css.map */

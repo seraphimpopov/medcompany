@@ -1,0 +1,40 @@
+.news-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.news-item {
+    margin-bottom: 20px;
+}
+
+.news-item h2 {
+    font-size: 24px;
+}
+
+.news-item p {
+    margin-bottom: 10px;
+}
+
+.news-item a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.product-item {
+    box-sizing: border-box;
+    padding: 12px;
+    width: 100%;
+    border: 1px solid #e5e5ed;
+    border-radius: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 20px;
+    position: relative;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+}

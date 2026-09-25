@@ -1,0 +1,39 @@
+# Ядро Bitrix, загрузки и кеши живут только на сервере.
+# В репозитории — только собственный код: шаблоны, php_interface, свои компоненты.
+/bitrix/*
+!/bitrix/templates/
+!/bitrix/php_interface/
+!/bitrix/components/
+/bitrix/components/bitrix/
+/bitrix/templates/medcompany (1) (1)/
+/upload/
+/cgi-bin/
+.sass-cache/
+
+# Секреты — никогда не коммитить
+/bitrix/php_interface/dbconn.php*
+/local/ai-agent/config.php
+# Скрипт удалённого выполнения PHP (веб-шелл), см. README → «Безопасность»
+/auth/manager.php
+
+# Дампы, архивы, сгенерированные файлы
+*.sql
+*.tar.gz
+*.zip
+/sitemap*.xml
+/~*sitemap*
+/index.htm
+/bitrix408
+/ct94339
+/otp@gs.timeweb.net
+
+# Логи и выгрузки данных утилит
+/local/tools/logs/
+/local/ai-agent/logs/
+/local/tools/*.csv
+/local/tools/descriptions_import/*.csv
+/local/tools/descriptions_import/*.json
+
+.idea/
+.DS_Store
+Thumbs.db

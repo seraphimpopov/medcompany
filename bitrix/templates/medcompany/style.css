@@ -1,0 +1,15 @@
+/*# sourceMappingURL=style.css.map */
+@media (min-width: 768px) and (max-width: 964) {
+.header__nav-item {
+    margin-right: 15px!important;
+}
+
+<!--.header__nav-item:first-child {
+    text-decoration: underline;
+}-->
+
+.header__nav-item:last-child {
+    margin-right: 0;
+    padding-right: 15px;
+}
+}

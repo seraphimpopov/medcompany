@@ -1,0 +1,19 @@
+.active {
+  background-color: var(--color1);
+  color: #fff;
+  border-radius: 10px;
+  padding: 5px; }
+
+.active:hover {
+  color: #fff; }
+
+.num {
+  margin: 10px; }
+
+.fa-arrow-right {
+  margin-left: 10px; }
+
+.fa-arrow-left {
+  margin-right: 10px; }
+
+/*# sourceMappingURL=style.css.map */

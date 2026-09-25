@@ -1,0 +1,13 @@
+.news-detail h1 {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.news-detail p {
+    margin-bottom: 10px;
+}
+
+.news-detail a {
+    color: #007bff;
+    text-decoration: none;
+}

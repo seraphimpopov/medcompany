@@ -1,0 +1,163 @@
+@media (min-width: 768px) {
+  .burger {
+    display: none;
+  }
+
+  .main_menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 5px 15px;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+
+    a:hover {
+
+    }
+
+    a:active {
+      color: var(--color1);
+    }
+
+    a.select {
+      color: var(--color1);
+    }
+  }
+
+  .main_menu li:not(:first-child) {
+    margin: 10px 0 0;
+  }
+
+  .main_menu a {
+    color: var(--color3);
+    text-decoration: none;
+    font-size: 16px;
+    transition: .5s;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .main_menu a:hover {
+    color: var(--color1);
+  }
+
+  .main_menu a:active {
+    color: var(--color1);
+  }
+
+  .main_menu a.select {
+    color: var(--color1);
+  }
+}
+
+.overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.lock {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+
+  .burger {
+    width: 40px;
+    height: 20px;
+    background-color: transparent;
+    border: none;
+    position: relative;
+    display: block;
+    float: right;
+    cursor: pointer;
+  }
+
+  .burger::before,
+  .burger::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #1e1e1e;
+  }
+
+  .burger::after {
+    top: auto;
+    bottom: 0;
+  }
+
+  .burger span {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: rotateY(-50%);
+    width: 100%;
+    height: 2px;
+    background-color: #1e1e1e;
+  }
+
+  .menu__body {
+    position: fixed;
+    left: 0;
+    top: 0;
+    max-width: 300px;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    box-shadow: 5px 0 15px -5px rgba(0, 0, 0, 0.8);
+    background-color: #e1e1e1;
+    transform: translateX(-150vw);
+  }
+
+  .main_menu {
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    padding: 0;
+    padding-top: 30%;
+    position: relative;
+
+    li {
+      font-size: 14px;
+      width: 100%;
+      padding: 20px 30px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    a.select {
+      color: var(--color1);
+    }
+  }
+
+  .menu__body.open {
+    transform: translateX(0);
+    transition: all 0.5s;
+  }
+
+  .overlay.open {
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.5s;
+  }
+
+  .main_menu li {
+    font-size: 14px;
+    width: 100%;
+    padding: 20px 30px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  .main_menu a.select {
+    color: var(--color1);
+  }
+}
