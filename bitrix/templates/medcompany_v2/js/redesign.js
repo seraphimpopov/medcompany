@@ -1058,6 +1058,73 @@
         content.appendChild(card);
     }
 
+    // Checkout: the pickup point follows the region chosen in the form (Ярославская / Ивановская / Владимирская);
+    // that office is listed first and selected, a point picked by hand is kept until the location changes
+    function soaPickupByCity() {
+        var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
+        if (!C || C.__mkPickupByCity || typeof C.refreshOrder !== 'function' || typeof C.getPickUpInfoArray !== 'function') return;
+        C.__mkPickupByCity = true;
+        var byCode = {};
+        var lastLocation = null;
+        var locationCode = function () {
+            var props = (C.result && C.result.ORDER_PROP && C.result.ORDER_PROP.properties) || [];
+            for (var i = 0; i < props.length; i++) {
+                if (props[i].TYPE === 'LOCATION') return String([].concat(props[i].VALUE || [])[0] || '');
+            }
+            return '';
+        };
+        var preferredStore = function (stores) {
+            var store = byCode[locationCode()];
+            return store && stores.indexOf(store) !== -1 ? store : null;
+        };
+        var deliveryStores = function () {
+            var d = typeof C.getSelectedDelivery === 'function' ? C.getSelectedDelivery() : null;
+            return d && d.STORE ? d.STORE.map(String) : [];
+        };
+        var originalInfo = C.getPickUpInfoArray;
+        C.getPickUpInfoArray = function (ids) {
+            var list = originalInfo.apply(this, arguments);
+            var preferred = preferredStore((ids || []).map(String));
+            if (preferred && list && list.length > 1) {
+                list.sort(function (a, b) { return (String(b.ID) === preferred) - (String(a.ID) === preferred); });
+            }
+            return list;
+        };
+        var choose = function () {
+            var input = document.getElementById('BUYER_STORE');
+            var preferred = preferredStore(deliveryStores());
+            if (!input || !preferred) return;
+            var first = document.querySelector('#bx-soa-pickup .bx-soa-pickup-list-item');
+            if (String(input.value) !== preferred) {
+                input.value = preferred;
+                C.sendRequest();
+            } else if (first && first.id !== 'store-' + preferred) {
+                C.sendRequest(); // the list was drawn before the office was known: redraw it in the right order
+            }
+        };
+        var apply = function () {
+            if (!deliveryStores().length || !document.getElementById('BUYER_STORE')) return;
+            var code = locationCode();
+            if (!code || code === lastLocation) return;
+            lastLocation = code;
+            if (byCode.hasOwnProperty(code)) { choose(); return; }
+            fetch('/bitrix/templates/medcompany_v2/ajax/pickup-store.php?code=' + encodeURIComponent(code), { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : {}; })
+                .then(function (data) {
+                    byCode[code] = data && data.store ? String(data.store) : '';
+                    if (code === locationCode()) choose();
+                })
+                .catch(function () {});
+        };
+        var originalRefresh = C.refreshOrder;
+        C.refreshOrder = function () {
+            var result = originalRefresh.apply(this, arguments);
+            setTimeout(apply, 0);
+            return result;
+        };
+        setTimeout(apply, 600);
+    }
+
     // Checkout: no height tweening or forced scroll jumps
     function calmCheckout() {
         var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
@@ -1119,6 +1186,7 @@
         // catalog objects are created by inline scripts on BX.ready, so wait a tick
         if (window.BX && BX.ready) { BX.ready(function () { setTimeout(initCartButtons, 0); }); } else { setTimeout(initCartButtons, 300); }
         calmCheckout();
+        soaPickupByCity();
         initBasketSelection();
         fitBanners();
         setTimeout(fitBanners, 800);
