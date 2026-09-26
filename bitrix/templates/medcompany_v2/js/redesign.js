@@ -1058,6 +1058,85 @@
         content.appendChild(card);
     }
 
+    // Checkout: each pickup point in the open "Самовывоз" step becomes a card — photo, name, short address,
+    // phone and hours, then "Выбрать" or "Выбрано". The component's own nodes and handlers are reused.
+    function soaPickupList() {
+        var items = document.querySelectorAll('#bx-soa-pickup .bx-soa-pickup-list-item:not(.mk-store)');
+        if (!items.length) return;
+        var subtitle = document.querySelector('#bx-soa-pickup .bx-soa-pickup-subTitle');
+        if (subtitle) subtitle.textContent = subtitle.textContent.replace(/[:\s]+$/, '');
+        var node = function (tag, className, text) {
+            var el = document.createElement(tag);
+            el.className = className;
+            if (text) el.textContent = text;
+            return el;
+        };
+        Array.prototype.forEach.call(items, function (item) {
+            var detail = item.querySelector('.bx-soa-pickup-l-item-detail');
+            var desc = item.querySelector('.bx-soa-pickup-l-item-desc');
+            if (!detail || !desc) return;
+            var facts = {};
+            desc.innerHTML.split(/<br\s*\/?>/i).forEach(function (line) {
+                var holder = document.createElement('div');
+                holder.innerHTML = line;
+                var text = holder.textContent.replace(/\s+/g, ' ').trim();
+                var colon = text.indexOf(':');
+                if (colon < 1) return;
+                var key = text.slice(0, colon).toLowerCase();
+                var value = text.slice(colon + 1).trim();
+                if (/^адрес/.test(key)) facts.address = value;
+                else if (/^телефон/.test(key)) facts.phone = value;
+                else if (/^(режим|график)/.test(key)) facts.hours = value;
+            });
+            var nameNode = item.querySelector('.bx-soa-pickup-l-item-name');
+            var addressNode = item.querySelector('.bx-soa-pickup-l-item-adress');
+            var address = (facts.address || (addressNode ? addressNode.textContent : ''))
+                .replace(/^\s*\d{6},\s*/, '')
+                .replace(/^[^,]*\sобл(\.|асть)?,\s*/i, '')
+                .trim();
+            var hours = (facts.hours || '')
+                .replace(/с\s*(\d{1,2}[:.]\d{2})\s*до\s*(\d{1,2}[:.]\d{2})/g, '$1–$2')
+                .replace(/([А-ЯЁ][а-яё])\.?\s*-\s*([А-ЯЁ][а-яё])\.?/g, '$1–$2');
+
+            var body = node('div', 'mk-store__body');
+            body.appendChild(node('div', 'mk-store__name', nameNode ? nameNode.textContent.trim() : ''));
+            if (address) body.appendChild(node('div', 'mk-store__addr', address));
+            if (facts.phone || hours) {
+                var meta = node('div', 'mk-store__meta');
+                if (facts.phone) meta.appendChild(node('span', 'mk-store__fact mk-store__fact--phone', facts.phone));
+                if (hours) {
+                    // "Пн–Пт 8:30–17:30, Сб–Вс выходной" wraps only between its parts
+                    var time = node('span', 'mk-store__fact mk-store__fact--time');
+                    var text = node('span', 'mk-store__fact-text');
+                    hours.split(/,\s*/).forEach(function (part, i, parts) {
+                        text.appendChild(node('span', 'mk-store__nowrap', part + (i < parts.length - 1 ? ',' : '')));
+                        if (i < parts.length - 1) text.appendChild(document.createTextNode(' '));
+                    });
+                    time.appendChild(text);
+                    meta.appendChild(time);
+                }
+                body.appendChild(meta);
+            }
+            var img = item.querySelector('.bx-soa-pickup-l-item-img');
+            var button = item.querySelector('.bx-soa-pickup-l-item-btn');
+            var chosen = node('span', 'mk-store__chosen', 'Выбрано');
+
+            if (img) {
+                img.classList.add('mk-store__img');
+                img.alt = nameNode ? nameNode.textContent.trim() : '';
+                item.appendChild(img);
+            } else {
+                item.classList.add('mk-store--no-img');
+            }
+            item.appendChild(body);
+            if (button) item.appendChild(button);
+            item.appendChild(chosen);
+            if (addressNode) addressNode.parentNode.removeChild(addressNode);
+            detail.parentNode.removeChild(detail);
+            item.classList.add('mk-store');
+        });
+    }
+
     // Checkout: the pickup point follows the region chosen in the form (Ярославская / Ивановская / Владимирская);
     // that office is listed first and selected, a point picked by hand is kept until the location changes
     function soaPickupByCity() {
@@ -1209,7 +1288,7 @@
             new MutationObserver(function () {
                 if (pending) return;
                 pending = true;
-                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); soaPropsSummary(); soaPickupCard(); emptyCart(); markCatalogButtons(); });
+                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); soaPropsSummary(); soaPickupCard(); soaPickupList(); emptyCart(); markCatalogButtons(); });
             }).observe(document.querySelector('.mk-main') || document.body, { childList: true, subtree: true });
         }
     }
