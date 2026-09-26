@@ -2918,3 +2918,81 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
     .mk-empty-cart__actions { flex-direction: column; align-self: stretch; }
     .mk-empty-cart__actions .mk-pill { justify-content: center; }
 }
+
+/* product tabs: wrap into pills when they do not fit one line (no hidden horizontal scroll) */
+.mk-v2 .mk-tabs { container-type: inline-size; }
+@container (max-width: 1060px) {
+    .mk-v2 .mk-tabs__bar { flex-wrap: wrap; overflow: visible; gap: 8px; padding: 14px 16px; }
+    .mk-v2 .mk-tabs__tab { min-height: 44px; padding: 8px 16px; border-radius: 999px; background: var(--mk-panel-2); font-size: 14px; color: var(--mk-text); }
+    .mk-v2 .mk-tabs__tab:hover { background: var(--mk-panel); }
+    .mk-v2 .mk-tabs__tab[aria-selected=true] { background: var(--mk-primary); color: #fff; }
+    .mk-v2 .mk-tabs__tab[aria-selected=true]::after { display: none; }
+}
+
+/* product buttons after "add to cart": outlined "В корзине" with a check, leads to the cart */
+.mk-v2 .mk-in-cart {
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 8px;
+    background: #fff !important; color: var(--mk-primary) !important; border: 1.5px solid var(--mk-primary) !important; box-shadow: none !important;
+}
+.mk-v2 .mk-in-cart::before {
+    content: ""; flex: none; width: 16px; height: 16px; background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.mk-v2 .mk-in-cart:hover { background: var(--mk-primary) !important; color: #fff !important; }
+
+/* ---------- "Добавлено в корзину" card ---------- */
+.mk-cart-toast {
+    position: fixed; top: 20px; right: 20px; z-index: 1200; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start;
+    width: min(380px, calc(100vw - 32px)); padding: 14px 14px 16px; border-radius: 18px; background: var(--mk-surface);
+    box-shadow: 0 18px 50px rgba(29, 38, 29, .22), 0 2px 6px rgba(29, 38, 29, .08); border: 1px solid var(--mk-border);
+    font-family: var(--mk-font); color: var(--mk-text);
+    opacity: 0; visibility: hidden; transform: translateY(-12px); pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+}
+.mk-cart-toast.is-open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity .22s ease, transform .22s ease; }
+.mk-cart-toast__img { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; padding: 4px; overflow: hidden; border: 1px solid var(--mk-border); border-radius: 12px; background: #fff; }
+.mk-cart-toast__img img { width: 100%; height: 100%; object-fit: contain; }
+.mk-cart-toast__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mk-cart-toast__status { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--mk-primary); }
+.mk-cart-toast__check {
+    flex: none; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--mk-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round' d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 11px no-repeat;
+}
+.mk-cart-toast__name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: 600; line-height: 1.35; }
+.mk-cart-toast__meta { font-size: 12px; color: var(--mk-muted); }
+.mk-v2 .mk-cart-toast__go {
+    align-self: flex-start; display: inline-flex; align-items: center; min-height: 38px; margin-top: 6px; padding: 0 18px;
+    border-radius: 999px; background: var(--mk-primary); color: #fff !important; font-size: 14px; font-weight: 700;
+}
+.mk-v2 .mk-cart-toast__go:hover { background: var(--mk-primary-hover); }
+.mk-cart-toast__close {
+    flex: none; width: 32px; height: 32px; margin: -4px -4px 0 0; border: 0; border-radius: 10px; cursor: pointer; background: transparent;
+    position: relative;
+}
+.mk-cart-toast__close::before, .mk-cart-toast__close::after { content: ""; position: absolute; left: 9px; right: 9px; top: 15px; height: 2px; border-radius: 2px; background: var(--mk-muted); }
+.mk-cart-toast__close::before { transform: rotate(45deg); }
+.mk-cart-toast__close::after { transform: rotate(-45deg); }
+.mk-cart-toast__close:hover { background: var(--mk-panel-2); }
+@media (max-width: 767px) {
+    /* phones: slides up from the bottom, full width, thumb-reachable; swipe down to dismiss */
+    .mk-cart-toast {
+        top: auto; right: 12px; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto;
+        grid-template-columns: 56px minmax(0, 1fr) auto; padding: 12px; transform: translateY(24px);
+    }
+    .mk-cart-toast.is-open { transform: none; }
+    .mk-cart-toast__img { width: 56px; height: 56px; }
+    .mk-v2 .mk-cart-toast__go { min-height: 44px; }
+    .mk-cart-toast__close { width: 44px; height: 44px; }
+    .mk-cart-toast__close::before, .mk-cart-toast__close::after { left: 15px; right: 15px; top: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mk-cart-toast, .mk-cart-toast.is-open { transition: none; transform: none; }
+}
+
+/* product page: the main cart button is a pill like every other button (both "В корзину" and "В корзине") */
+.mk-v2 .product_row_content_btn .btn, .mk-v2 .product_row_content_btn a.btn, .mk-v2 .product_row_content_btn button,
+.mk-v2 .product_row_content_btn-1 button {
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px !important; font-weight: 700 !important; font-family: var(--mk-font) !important;
+}

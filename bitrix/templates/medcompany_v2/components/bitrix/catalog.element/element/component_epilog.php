@@ -6,8 +6,11 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 use Bitrix\Main\Loader;
 
-$titles = $arResult["NAME"] . 'от интернет магазина Медкомпания.рф';
-$APPLICATION->SetPageProperty("title", $titles);
+// the <title> itself is composed in header.php (mkSeoTitle); here only Open Graph data
+$APPLICATION->SetPageProperty('og:type', 'product');
+if (!empty($templateData['MK_OG_IMAGE'])) {
+    $APPLICATION->SetPageProperty('og:image', $templateData['MK_OG_IMAGE']);
+}
 
 /**
  * @var array $templateData

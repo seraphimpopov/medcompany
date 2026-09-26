@@ -3,7 +3,7 @@ $CurDir = $APPLICATION->GetCurDir();
 $CurUri = $APPLICATION->GetCurUri();
 $isIndex = $APPLICATION->GetCurPage() == SITE_DIR;
 ?><!doctype html>
-<html lang="ru-Ru">
+<html lang="ru">
 <head>
     <?
 
@@ -14,7 +14,83 @@ use Bitrix\Main\Localization\Loc;
 
 $server = Context::getCurrent()->getServer();
 $request = Context::getCurrent()->getRequest();
-$canonical = ($request->isHttps() ? 'https://' : 'http://') . preg_replace('/:\d+/', '', $server->getHttpHost()) . $request->getRequestedPageDirectory() . '/';
+// One canonical host, the real path (no doubled slash) and only the parameters that change the content
+$mkSiteUrl = 'https://xn--80ahcoijdjgl3p.xn--p1ai';
+$canonical = $mkSiteUrl . $APPLICATION->GetCurPage(false);
+$mkCanonicalQuery = array();
+foreach (array('ELEMENT_ID', 'SECTION_ID') as $mkParam) {
+    if (isset($_GET[$mkParam]) && ctype_digit((string)$_GET[$mkParam])) {
+        $mkCanonicalQuery[$mkParam] = (int)$_GET[$mkParam];
+    }
+}
+foreach ($_GET as $mkParam => $mkValue) {
+    if (preg_match('/^PAGEN_\d+$/', $mkParam) && (int)$mkValue > 1) {
+        $mkCanonicalQuery[$mkParam] = (int)$mkValue;
+    }
+}
+if ($mkCanonicalQuery) {
+    $canonical .= '?' . http_build_query($mkCanonicalQuery);
+}
+$mkNoIndex = preg_match('#^/(personal|auth|login)/#', $APPLICATION->GetCurPage(false)); // /search/ sets its own robots tag
+
+if (!function_exists('mkSeoTitleText')) {
+    // "<name> — купить в Ярославле | Медкомпания" for catalog pages, "<name> | Медкомпания" elsewhere
+    function mkSeoTitleText()
+    {
+        global $APPLICATION;
+        $page = $APPLICATION->GetCurPage(false);
+        if ($page === '/') {
+            return 'Медкомпания — стоматологические материалы и оборудование в Ярославле, Иваново и Владимире';
+        }
+        $title = trim((string)$APPLICATION->GetPageProperty('title'));
+        if ($title === '') {
+            $title = trim((string)$APPLICATION->GetTitle());
+        }
+        $title = trim(preg_replace('/\s+/u', ' ', strip_tags(htmlspecialchars_decode($title))));
+        if ($title === '') {
+            return 'Медкомпания';
+        }
+        // a title written in the admin (it already names the shop) is kept as is
+        if (mb_stripos($title, 'медкомпани') !== false) {
+            return $title;
+        }
+        if (strpos($page, '/catalog/') === 0 && $page !== '/catalog/' && mb_stripos($title, 'купить') === false) {
+            $title .= ' — купить в Ярославле';
+        }
+        return $title . ' | Медкомпания';
+    }
+    function mkSeoTitle()
+    {
+        return htmlspecialcharsbx(mkSeoTitleText());
+    }
+    // Open Graph / Twitter cards; pages may set og:image and og:type as page properties
+    function mkSeoMeta()
+    {
+        global $APPLICATION;
+        $site = 'https://xn--80ahcoijdjgl3p.xn--p1ai';
+        $description = trim(strip_tags((string)$APPLICATION->GetPageProperty('description')));
+        $image = (string)$APPLICATION->GetPageProperty('og:image');
+        if ($image === '') {
+            $image = '/images/delivery-banner.webp';
+        }
+        if (strpos($image, 'http') !== 0) {
+            $image = $site . $image;
+        }
+        $type = (string)$APPLICATION->GetPageProperty('og:type');
+        $tags = array(
+            '<meta property="og:type" content="' . htmlspecialcharsbx($type !== '' ? $type : 'website') . '">',
+            '<meta property="og:site_name" content="Медкомпания">',
+            '<meta property="og:locale" content="ru_RU">',
+            '<meta property="og:title" content="' . htmlspecialcharsbx(mkSeoTitleText()) . '">',
+            '<meta property="og:image" content="' . htmlspecialcharsbx($image) . '">',
+            '<meta name="twitter:card" content="summary_large_image">',
+        );
+        if ($description !== '') {
+            $tags[] = '<meta property="og:description" content="' . htmlspecialcharsbx($description) . '">';
+        }
+        return implode("\n    ", $tags) . "\n";
+    }
+}
 
     Asset::getInstance()->addJs(SITE_TEMPLATE_PATH . '/js/jquery-3.7.0.min.js');
     Asset::getInstance()->addJs(SITE_TEMPLATE_PATH . '/js/fancybox/jquery.fancybox.min.js');
@@ -38,7 +114,9 @@ $canonical = ($request->isHttps() ? 'https://' : 'http://') . preg_replace('/:\d
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= SITE_TEMPLATE_PATH ?>/css/redesign.css?v=<?= $mkV2Ver ?>">
-    <title><? $APPLICATION->ShowTitle(true) ?></title>
+    <title><? $APPLICATION->AddBufferContent('mkSeoTitle') ?></title>
+    <? $APPLICATION->AddBufferContent('mkSeoMeta') ?>
+    <? if ($mkNoIndex): ?><meta name="robots" content="noindex, follow"><? endif ?>
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript" >
         (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
@@ -59,9 +137,33 @@ $canonical = ($request->isHttps() ? 'https://' : 'http://') . preg_replace('/:\d
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
-            "@type": "WebSite",
-            "name": "Медкомпания",
-            "url": "https://xn--80ahcoijdjgl3p.xn--p1ai/"
+            "@graph": [
+                {
+                    "@type": "Organization",
+                    "@id": "https://xn--80ahcoijdjgl3p.xn--p1ai/#org",
+                    "name": "Медкомпания",
+                    "alternateName": "МК Ярославль",
+                    "url": "https://xn--80ahcoijdjgl3p.xn--p1ai/",
+                    "logo": "https://xn--80ahcoijdjgl3p.xn--p1ai/bitrix/templates/medcompany_v2/img/logo.png",
+                    "contactPoint": [{"@type": "ContactPoint", "telephone": "+7-4852-42-95-60", "contactType": "sales", "areaServed": "RU", "availableLanguage": "Russian"}],
+                    "department": [
+                        {"@type": "Store", "name": "Медкомпания — Ярославль", "telephone": "+7-4852-42-95-60", "openingHours": "Mo-Fr 08:30-17:30",
+                         "address": {"@type": "PostalAddress", "streetAddress": "ул. Нагорная, 9/31", "addressLocality": "Ярославль", "addressCountry": "RU"}},
+                        {"@type": "Store", "name": "Медкомпания — Иваново", "telephone": "+7-4932-26-46-60", "openingHours": "Mo-Fr 08:30-17:30",
+                         "address": {"@type": "PostalAddress", "streetAddress": "ул. Сакко, д. 41А, пом. 1011", "addressLocality": "Иваново", "addressCountry": "RU"}},
+                        {"@type": "Store", "name": "Медкомпания — Владимир", "telephone": "+7-910-815-81-65", "openingHours": "Mo-Fr 08:30-17:30",
+                         "address": {"@type": "PostalAddress", "streetAddress": "пр-т Ленина, д. 5", "addressLocality": "Владимир", "addressCountry": "RU"}}
+                    ]
+                },
+                {
+                    "@type": "WebSite",
+                    "@id": "https://xn--80ahcoijdjgl3p.xn--p1ai/#site",
+                    "name": "Медкомпания",
+                    "url": "https://xn--80ahcoijdjgl3p.xn--p1ai/",
+                    "publisher": {"@id": "https://xn--80ahcoijdjgl3p.xn--p1ai/#org"},
+                    "potentialAction": {"@type": "SearchAction", "target": "https://xn--80ahcoijdjgl3p.xn--p1ai/search/?q={search_term_string}", "query-input": "required name=search_term_string"}
+                }
+            ]
         }
     </script>
 </head>

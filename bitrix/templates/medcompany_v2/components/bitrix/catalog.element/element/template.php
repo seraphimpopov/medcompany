@@ -77,6 +77,16 @@ $itemIds = array(
     'TABS_PANEL_ID' => $mainId . '_tabs_panel'
 );
 $obName = $templateData['JS_OBJ'] = 'ob' . preg_replace('/[^a-zA-Z0-9_]/', 'x', $mainId);
+// picture for Open Graph (read in component_epilog.php, which also runs when this template is cached)
+$templateData['MK_OG_IMAGE'] = !empty($arResult['DETAIL_PICTURE']['SRC']) ? $arResult['DETAIL_PICTURE']['SRC']
+    : (!empty($arResult['PREVIEW_PICTURE']['SRC']) ? $arResult['PREVIEW_PICTURE']['SRC'] : '');
+$mkSku = isset($arResult['PROPERTIES']['CML2_ARTICLE']['VALUE']) ? trim((string)$arResult['PROPERTIES']['CML2_ARTICLE']['VALUE']) : '';
+$mkBrand = isset($arResult['PROPERTIES']['CML2_MANUFACTURER']['VALUE']) ? trim((string)$arResult['PROPERTIES']['CML2_MANUFACTURER']['VALUE']) : '';
+$mkDescription = trim(preg_replace('/\s+/u', ' ', strip_tags((string)($arResult['PREVIEW_TEXT'] ?: $arResult['DETAIL_TEXT']))));
+if (mb_strlen($mkDescription) > 300) {
+    $mkDescription = rtrim(mb_substr($mkDescription, 0, 297)) . '…';
+}
+$mkProductUrl = 'https://xn--80ahcoijdjgl3p.xn--p1ai' . $arResult['DETAIL_PAGE_URL'];
 $name = $arResult['NAME']; //!empty($arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE']) ? $arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE'] : 
 $title = !empty($arResult['IPROPERTY_VALUES']['ELEMENT_DETAIL_PICTURE_FILE_TITLE'])
     ? $arResult['IPROPERTY_VALUES']['ELEMENT_DETAIL_PICTURE_FILE_TITLE']
@@ -633,7 +643,11 @@ $priceInfoText = MedcompanyPriceRequest::notice($arResult);
         } ?>
         <meta itemprop="name" content="<?= $name ?>"/>
         <meta itemprop="category" content="<?= $arResult['CATEGORY_PATH'] ?>"/>
-        <meta itemprop="id" content="<?= $arResult['ID'] ?>"/>
+        <meta itemprop="productID" content="<?= $arResult['ID'] ?>"/>
+        <link itemprop="url" href="<?= htmlspecialcharsbx($mkProductUrl) ?>"/>
+        <?php if ($mkSku !== ''): ?><meta itemprop="sku" content="<?= htmlspecialcharsbx($mkSku) ?>"/><?php endif ?>
+        <?php if ($mkBrand !== ''): ?><span itemprop="brand" itemscope itemtype="https://schema.org/Brand"><meta itemprop="name" content="<?= htmlspecialcharsbx($mkBrand) ?>"/></span><?php endif ?>
+        <?php if ($mkDescription !== ''): ?><meta itemprop="description" content="<?= htmlspecialcharsbx($mkDescription) ?>"/><?php endif ?>
         <?php
         if ($haveOffers) {
             foreach ($arResult['JS_OFFERS'] as $offer) {
@@ -674,9 +688,8 @@ $priceInfoText = MedcompanyPriceRequest::notice($arResult);
             <div class="product_info"></div>
 
 
-            <meta itemprop="name" content="<?= $name ?>"/>
-            <meta itemprop="category" content="<?= $arResult['CATEGORY_PATH'] ?>"/>
             <span itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+		<link itemprop="url" href="<?= htmlspecialcharsbx($mkProductUrl) ?>"/>
 		<meta itemprop="price" content="<?= $price['RATIO_PRICE'] ?>"/>
 		<meta itemprop="priceCurrency" content="<?= $price['CURRENCY'] ?>"/>
 		<link itemprop="availability"

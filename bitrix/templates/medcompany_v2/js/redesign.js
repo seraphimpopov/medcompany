@@ -787,6 +787,147 @@
         });
     }
 
+    // Add to cart without the Bitrix popup: the button turns into "В корзине" and then leads to the cart
+    var CART_URL = '/personal/cart/';
+    var cartIds = {};
+    function markInCart(button) {
+        if (!button || button.classList.contains('mk-in-cart')) return;
+        button.classList.add('mk-in-cart');
+        button.textContent = 'В корзине';
+        button.setAttribute('aria-label', 'Товар в корзине — перейти в корзину');
+        button.setAttribute('title', 'Перейти в корзину');
+    }
+    function catalogObjects() {
+        var list = [];
+        var types = [window.JCCatalogItem, window.JCCatalogElement].filter(Boolean);
+        if (!types.length) return list;
+        Object.keys(window).forEach(function (key) {
+            if (key.indexOf('ob') !== 0) return;
+            var obj;
+            try { obj = window[key]; } catch (e) { return; }
+            if (!obj || typeof obj !== 'object') return;
+            for (var i = 0; i < types.length; i++) {
+                if (obj instanceof types[i]) { list.push(obj); break; }
+            }
+        });
+        return list;
+    }
+    function currentProductId(obj) {
+        if (obj.offers && obj.offers.length && typeof obj.offerNum === 'number' && obj.offers[obj.offerNum]) {
+            return parseInt(obj.offers[obj.offerNum].ID, 10);
+        }
+        return obj.product ? parseInt(obj.product.id, 10) : 0;
+    }
+    function markCatalogButtons() {
+        if (!Object.keys(cartIds).length) return;
+        catalogObjects().forEach(function (obj) {
+            if (obj.canBuy === false) return;
+            if (cartIds[currentProductId(obj)]) {
+                markInCart(obj.obBuyBtn);
+                markInCart(obj.obAddToBasketBtn);
+            }
+        });
+    }
+    // "Добавлено в корзину" card: top right on desktop, a bottom sheet-like card on phones
+    var toastTimer = null;
+    function showCartToast(obj) {
+        var name = obj.product && obj.product.name ? obj.product.name : '';
+        var root = obj.obProduct || null;
+        var img = '';
+        if (obj.product && obj.product.pict && obj.product.pict.SRC) img = obj.product.pict.SRC;
+        if (!img && root) {
+            var pic = root.querySelector('img');
+            if (pic) img = pic.currentSrc || pic.src;
+        }
+        if (!img) {
+            var mainPic = document.querySelector('.product_row img[itemprop="image"]');
+            if (mainPic) img = mainPic.currentSrc || mainPic.src;
+        }
+        var qty = obj.obQuantity && obj.obQuantity.value ? parseFloat(obj.obQuantity.value) : 1;
+        var toast = document.getElementById('mk-cart-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'mk-cart-toast';
+            toast.className = 'mk-cart-toast';
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            document.body.appendChild(toast);
+            toast.addEventListener('mouseenter', function () { clearTimeout(toastTimer); });
+            toast.addEventListener('mouseleave', function () { hideLater(2500); });
+            toast.addEventListener('click', function (e) {
+                if (e.target.closest('.mk-cart-toast__close')) hide();
+            });
+            // swipe down to dismiss on phones
+            var startY = null;
+            toast.addEventListener('touchstart', function (e) { startY = e.touches[0].clientY; }, { passive: true });
+            toast.addEventListener('touchmove', function (e) {
+                if (startY !== null && e.touches[0].clientY - startY > 40) { startY = null; hide(); }
+            }, { passive: true });
+        }
+        var esc = function (t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+        toast.innerHTML = '<span class="mk-cart-toast__img">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') + '</span>'
+            + '<div class="mk-cart-toast__body">'
+            + '<div class="mk-cart-toast__status"><span class="mk-cart-toast__check" aria-hidden="true"></span>Добавлено в корзину</div>'
+            + (name ? '<div class="mk-cart-toast__name">' + esc(name) + '</div>' : '')
+            + '<div class="mk-cart-toast__meta">' + (qty > 1 ? esc(String(qty)) + ' шт.' : '1 шт.') + '</div>'
+            + '<a class="mk-cart-toast__go" href="' + CART_URL + '">Перейти в корзину</a>'
+            + '</div>'
+            + '<button type="button" class="mk-cart-toast__close" aria-label="Закрыть уведомление"></button>';
+        toast.classList.remove('is-open');
+        void toast.offsetWidth;
+        toast.classList.add('is-open');
+        hideLater(5000);
+        function hide() { clearTimeout(toastTimer); toast.classList.remove('is-open'); }
+        function hideLater(ms) { clearTimeout(toastTimer); toastTimer = setTimeout(hide, ms); }
+    }
+
+    function patchBasketResult(Ctor) {
+        if (!Ctor || !Ctor.prototype || Ctor.prototype.__mkQuietBasket) return;
+        var original = Ctor.prototype.basketResult;
+        Ctor.prototype.__mkQuietBasket = true;
+        Ctor.prototype.basketResult = function (result) {
+            var isBuy = this.basketMode === 'BUY' || (this.basketAction === 'BUY' && this.basketMode !== 'ADD');
+            if (!result || result.STATUS !== 'OK' || isBuy) {
+                // errors still explain themselves in the popup; "Купить" still redirects
+                return original.apply(this, arguments);
+            }
+            if (this.obPopupWin) this.obPopupWin.close();
+            if (typeof this.setAnalyticsDataLayer === 'function') this.setAnalyticsDataLayer('addToCart');
+            BX.onCustomEvent('OnBasketChange');
+            if (this.obProduct && BX.findParent(this.obProduct, { className: 'bx_sale_gift_main_products' }, 10)) {
+                BX.onCustomEvent('onAddToBasketMainProduct', [this]);
+            }
+            cartIds[currentProductId(this)] = true;
+            markInCart(this.obBuyBtn);
+            markInCart(this.obAddToBasketBtn);
+            showCartToast(this);
+        };
+    }
+    function initCartButtons() {
+        patchBasketResult(window.JCCatalogItem);
+        patchBasketResult(window.JCCatalogElement);
+        // a click on "В корзине" goes to the cart instead of adding the product again
+        document.addEventListener('click', function (e) {
+            var button = e.target.closest && e.target.closest('.mk-in-cart');
+            if (!button) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            window.location.href = CART_URL;
+        }, true);
+        if (!window.fetch || !document.querySelector('[id$="_buy_link"], [id$="_add_basket_link"]')) return;
+        fetch('/bitrix/templates/medcompany_v2/ajax/basket-ids.php', { credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (ids) {
+                (ids || []).forEach(function (id) { cartIds[id] = true; });
+                markCatalogButtons();
+                // product objects may be created after this script runs
+                if (document.readyState !== 'complete') window.addEventListener('load', markCatalogButtons);
+                setTimeout(markCatalogButtons, 1200);
+            })
+            .catch(function () {});
+    }
+
     // Cart: the empty state (server-rendered or shown after the last item is removed) gets the site's look
     function emptyCart() {
         document.querySelectorAll('.bx-sbb-empty-cart-container:not([data-mk-empty])').forEach(function (box) {
@@ -975,6 +1116,8 @@
         initCrumbs();
         initHomeSidebar();
         emptyCart();
+        // catalog objects are created by inline scripts on BX.ready, so wait a tick
+        if (window.BX && BX.ready) { BX.ready(function () { setTimeout(initCartButtons, 0); }); } else { setTimeout(initCartButtons, 300); }
         calmCheckout();
         initBasketSelection();
         fitBanners();
@@ -998,7 +1141,7 @@
             new MutationObserver(function () {
                 if (pending) return;
                 pending = true;
-                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); soaPropsSummary(); soaPickupCard(); emptyCart(); });
+                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); soaPropsSummary(); soaPickupCard(); emptyCart(); markCatalogButtons(); });
             }).observe(document.querySelector('.mk-main') || document.body, { childList: true, subtree: true });
         }
     }
