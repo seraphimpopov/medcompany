@@ -18,6 +18,85 @@ use Bitrix\Main\ModuleManager;
 
 $this->setFrameMode(true);
 
+if (!function_exists('mkSimilarProductIds')) {
+    // Products most like the current one: same section first (parent section as a fallback),
+    // ranked by manufacturer, "Тип"/"Вид", shared words of the name and a close price.
+    function mkSimilarProductIds($elementId, $limit = 8)
+    {
+        $elementId = (int)$elementId;
+        if ($elementId <= 0 || !Loader::includeModule('iblock') || !Loader::includeModule('catalog')) {
+            return array();
+        }
+        $cache = new CPHPCache();
+        if ($cache->InitCache(21600, 'mk_similar_' . $elementId . '_' . $limit, '/mk_similar')) {
+            return $cache->GetVars();
+        }
+        $cache->StartDataCache();
+        $select = array('ID', 'NAME', 'IBLOCK_SECTION_ID', 'CATALOG_PRICE_3', 'PROPERTY_CML2_MANUFACTURER', 'PROPERTY_TYPE', 'PROPERTY_ATT_TYPE', 'PROPERTY_ATT_VIEW');
+        $current = CIBlockElement::GetList(array(), array('IBLOCK_ID' => 16, 'ID' => $elementId), false, false, $select)->Fetch();
+        $result = array();
+        if ($current) {
+            $words = function ($name) {
+                $name = mb_strtolower(preg_replace('/\([^)]*\)/u', ' ', (string)$name));
+                preg_match_all('/[\p{L}\d]{3,}/u', $name, $m);
+                return array_values(array_unique(array_diff($m[0], array('для', 'при', 'без', 'шт', 'уп'))));
+            };
+            $currentWords = $words($current['NAME']);
+            $currentPrice = (float)$current['CATALOG_PRICE_3'];
+            $score = function ($row) use ($current, $currentWords, $currentPrice, $words) {
+                $points = 0;
+                if (!empty($current['PROPERTY_CML2_MANUFACTURER_ENUM_ID']) && $row['PROPERTY_CML2_MANUFACTURER_ENUM_ID'] == $current['PROPERTY_CML2_MANUFACTURER_ENUM_ID']) {
+                    $points += 3;
+                }
+                foreach (array('PROPERTY_TYPE_VALUE', 'PROPERTY_ATT_TYPE_VALUE', 'PROPERTY_ATT_VIEW_VALUE') as $key) {
+                    if (!empty($current[$key]) && isset($row[$key]) && mb_strtolower($row[$key]) === mb_strtolower($current[$key])) {
+                        $points += 2;
+                    }
+                }
+                $rowWords = $words($row['NAME']);
+                $union = count(array_unique(array_merge($currentWords, $rowWords)));
+                if ($union) {
+                    $points += 5 * count(array_intersect($currentWords, $rowWords)) / $union;
+                }
+                $price = (float)$row['CATALOG_PRICE_3'];
+                if ($currentPrice > 0 && $price >= $currentPrice * 0.5 && $price <= $currentPrice * 1.5) {
+                    $points += 2;
+                }
+                return $points;
+            };
+            $rank = function ($sectionId, $exclude) use ($select, $score) {
+                $filter = array(
+                    'IBLOCK_ID' => 16, 'ACTIVE' => 'Y', 'SECTION_ID' => $sectionId, 'INCLUDE_SUBSECTIONS' => 'Y',
+                    'CATALOG_AVAILABLE' => 'Y', '>CATALOG_PRICE_3' => 0, '!ID' => $exclude,
+                    array('LOGIC' => 'OR', '!PREVIEW_PICTURE' => false, '!DETAIL_PICTURE' => false),
+                );
+                $scores = array();
+                $res = CIBlockElement::GetList(array('SHOW_COUNTER' => 'DESC', 'ID' => 'DESC'), $filter, false, array('nTopCount' => 200), $select);
+                while ($row = $res->Fetch()) {
+                    if (!isset($scores[(int)$row['ID']])) {
+                        $scores[(int)$row['ID']] = $score($row);
+                    }
+                }
+                arsort($scores);
+                return array_keys($scores);
+            };
+            $sectionId = (int)$current['IBLOCK_SECTION_ID'];
+            if ($sectionId > 0) {
+                $result = array_slice($rank($sectionId, array($elementId)), 0, $limit);
+                if (count($result) < $limit) {
+                    $section = CIBlockSection::GetList(array(), array('IBLOCK_ID' => 16, 'ID' => $sectionId), false, array('ID', 'IBLOCK_SECTION_ID'))->Fetch();
+                    if (!empty($section['IBLOCK_SECTION_ID'])) {
+                        $more = $rank((int)$section['IBLOCK_SECTION_ID'], array_merge(array($elementId), $result));
+                        $result = array_merge($result, array_slice($more, 0, $limit - count($result)));
+                    }
+                }
+            }
+        }
+        $cache->EndDataCache($result);
+        return $result;
+    }
+}
+
 if (isset($arParams['USE_COMMON_SETTINGS_BASKET_POPUP']) && $arParams['USE_COMMON_SETTINGS_BASKET_POPUP'] == 'Y') {
     $basketAction = (isset($arParams['COMMON_ADD_TO_BASKET_ACTION']) ? array($arParams['COMMON_ADD_TO_BASKET_ACTION']) : array());
 } else {
@@ -276,28 +355,32 @@ if ($elementId > 0) {
 }
 ?>
 
-<div class="container">
-    <div style="font-size: 28px; font-weight: bold; flex-wrap: wrap; margin-left: 20px; margin-bottom: 40px;">Рекомендуемые товары</div>
+<?php
+$mkSimilarIds = isset($elementId) ? mkSimilarProductIds($elementId, 8) : array();
+if ($mkSimilarIds):
+?>
+<section class="container mk-similar" aria-labelledby="mk-similar-title">
+    <h2 class="mk-similar__title" id="mk-similar-title">Похожие товары</h2>
     <?php
 global $arrFilter;
 $arrFilter = array(
-    ">CATALOG_QUANTITY" => 0
+    "ID" => $mkSimilarIds
 );
     $intSectionID = $APPLICATION->IncludeComponent(
         "bitrix:catalog.section",
         "section", array(
         "IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
         "IBLOCK_ID" => $arParams["IBLOCK_ID"],
-        "ELEMENT_SORT_FIELD" => '',
-        "ELEMENT_SORT_ORDER" => 'RAND',
+        "ELEMENT_SORT_FIELD" => 'SHOW_COUNTER',
+        "ELEMENT_SORT_ORDER" => 'DESC',
         "ELEMENT_SORT_FIELD2" => $arParams["ELEMENT_SORT_FIELD2"],
         "ELEMENT_SORT_ORDER2" => $arParams["ELEMENT_SORT_ORDER2"],
         "PROPERTY_CODE" => (isset($arParams["LIST_PROPERTY_CODE"]) ? $arParams["LIST_PROPERTY_CODE"] : []),
         "PROPERTY_CODE_MOBILE" => $arParams["LIST_PROPERTY_CODE_MOBILE"],
-        "META_KEYWORDS" => $arParams["LIST_META_KEYWORDS"],
-        "META_DESCRIPTION" => $arParams["LIST_META_DESCRIPTION"],
-        "BROWSER_TITLE" => $arParams["LIST_BROWSER_TITLE"],
-        "SET_LAST_MODIFIED" => $arParams["SET_LAST_MODIFIED"],
+        "SET_BROWSER_TITLE" => "N",
+        "SET_META_KEYWORDS" => "N",
+        "SET_META_DESCRIPTION" => "N",
+        "SET_LAST_MODIFIED" => "N",
         "INCLUDE_SUBSECTIONS" => $arParams["INCLUDE_SUBSECTIONS"],
         "BASKET_URL" => $arParams["BASKET_URL"],
         "ACTION_VARIABLE" => $arParams["ACTION_VARIABLE"],
@@ -308,15 +391,15 @@ $arrFilter = array(
         "FILTER_NAME" => 'arrFilter',
         "CACHE_TYPE" => $arParams["CACHE_TYPE"],
         "CACHE_TIME" => $arParams["CACHE_TIME"],
-        "CACHE_FILTER" => $arParams["CACHE_FILTER"],
+        "CACHE_FILTER" => "Y",
         "CACHE_GROUPS" => $arParams["CACHE_GROUPS"],
         "SET_TITLE" => "N",
         "MESSAGE_404" => $arParams["~MESSAGE_404"],
-        "SET_STATUS_404" => $arParams["SET_STATUS_404"],
-        "SHOW_404" => $arParams["SHOW_404"],
+        "SET_STATUS_404" => "N",
+        "SHOW_404" => "N",
         "FILE_404" => $arParams["FILE_404"],
         "DISPLAY_COMPARE" => $arParams["USE_COMPARE"],
-        "PAGE_ELEMENT_COUNT" => $arParams["PAGE_ELEMENT_COUNT"],
+        "PAGE_ELEMENT_COUNT" => 8,
         "LINE_ELEMENT_COUNT" => $arParams["LINE_ELEMENT_COUNT"],
         "PRICE_CODE" => $arParams["~PRICE_CODE"],
         "USE_PRICE_COUNT" => $arParams["USE_PRICE_COUNT"],
@@ -328,8 +411,8 @@ $arrFilter = array(
         "PARTIAL_PRODUCT_PROPERTIES" => (isset($arParams["PARTIAL_PRODUCT_PROPERTIES"]) ? $arParams["PARTIAL_PRODUCT_PROPERTIES"] : ''),
         "PRODUCT_PROPERTIES" => (isset($arParams["PRODUCT_PROPERTIES"]) ? $arParams["PRODUCT_PROPERTIES"] : []),
 
-        "DISPLAY_TOP_PAGER" => $arParams["DISPLAY_TOP_PAGER"],
-        "DISPLAY_BOTTOM_PAGER" => $arParams["DISPLAY_BOTTOM_PAGER"],
+        "DISPLAY_TOP_PAGER" => "N",
+        "DISPLAY_BOTTOM_PAGER" => "N",
         "PAGER_TITLE" => $arParams["PAGER_TITLE"],
         "PAGER_SHOW_ALWAYS" => $arParams["PAGER_SHOW_ALWAYS"],
         "PAGER_TEMPLATE" => $arParams["PAGER_TEMPLATE"],
@@ -339,7 +422,7 @@ $arrFilter = array(
         "PAGER_BASE_LINK_ENABLE" => $arParams["PAGER_BASE_LINK_ENABLE"],
         "PAGER_BASE_LINK" => $arParams["PAGER_BASE_LINK"],
         "PAGER_PARAMS_NAME" => $arParams["PAGER_PARAMS_NAME"],
-        "LAZY_LOAD" => $arParams["LAZY_LOAD"],
+        "LAZY_LOAD" => "N",
         "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
         "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
 
@@ -352,8 +435,9 @@ $arrFilter = array(
         "OFFERS_SORT_ORDER2" => $arParams["OFFERS_SORT_ORDER2"],
         "OFFERS_LIMIT" => (isset($arParams["LIST_OFFERS_LIMIT"]) ? $arParams["LIST_OFFERS_LIMIT"] : 0),
 
-        "SECTION_ID" => $arResult["VARIABLES"]["SECTION_ID"],
-        "SECTION_CODE" => $arResult["VARIABLES"]["SECTION_CODE"],
+        "SECTION_ID" => "",
+        "SECTION_CODE" => "",
+        "SHOW_ALL_WO_SECTION" => "Y",
         "SECTION_URL" => $arResult["FOLDER"] . $arResult["URL_TEMPLATES"]["section"],
         "DETAIL_URL" => $arResult["FOLDER"] . $arResult["URL_TEMPLATES"]["element"],
         "USE_MAIN_ELEMENT_SECTION" => $arParams["USE_MAIN_ELEMENT_SECTION"],
@@ -412,4 +496,5 @@ $arrFilter = array(
         $component
     );
     ?>
-</div>
+</section>
+<?php endif; ?>

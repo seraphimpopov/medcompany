@@ -311,6 +311,13 @@ if (!isset($isHaveSections)): ?>
                    href="<?= htmlspecialcharsbx($APPLICATION->GetCurPageParam($mkKey === 'popular' ? '' : 'sort=' . $mkKey, array('sort', 'PAGEN_1'))) ?>"><?= $mkItem[0] ?></a>
             <? endforeach ?>
         </div>
+        <label class="mk-sortbar__select"><span class="mk-sortbar__select-text">Сортировка</span>
+            <select onchange="location.href=this.value" aria-label="Сортировка товаров">
+                <? foreach ($mkSorts as $mkKey => $mkItem): ?>
+                    <option value="<?= htmlspecialcharsbx($APPLICATION->GetCurPageParam($mkKey === 'popular' ? '' : 'sort=' . $mkKey, array('sort', 'PAGEN_1'))) ?>"<?= $mkKey === $mkSort ? ' selected' : '' ?>><?= $mkItem[0] ?></option>
+                <? endforeach ?>
+            </select>
+        </label>
         <label class="mk-sortbar__limit"><span class="mk-sortbar__limit-text">Показывать по</span>
             <select onchange="location.href=this.value" aria-label="Товаров на странице">
                 <? foreach ($mkLimits as $mkN): ?>

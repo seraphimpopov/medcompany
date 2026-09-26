@@ -51,7 +51,7 @@ $APPLICATION->SetTitle("Личный кабинет пользователя");
 		"SEND_INFO_PRIVATE" => "N",	// Генерировать почтовое событие
 		"SET_TITLE" => "Y",	// Устанавливать заголовок страницы
 		"SHOW_ACCOUNT_COMPONENT" => "Y",
-		"SHOW_ACCOUNT_PAGE" => "Y",	// Показать страницу персонального счета пользователя
+		"SHOW_ACCOUNT_PAGE" => "N",	// Показать страницу персонального счета пользователя
 		"SHOW_ACCOUNT_PAY_COMPONENT" => "Y",
 		"SHOW_BASKET_PAGE" => "Y",	// Вывести ссылку на корзину
 		"SHOW_CONTACT_PAGE" => "Y",	// Вывести ссылку на страницу контактов
@@ -61,7 +61,7 @@ $APPLICATION->SetTitle("Личный кабинет пользователя");
 		"MAILING_SHOW" => "Y",
 		"ALLOW_INNER" => "N",
 		"ONLY_INNER_FULL" => "N",
-		"SHOW_SUBSCRIBE_PAGE" => "Y",	// Показать страницу подписок
+		"SHOW_SUBSCRIBE_PAGE" => "N",	// Показать страницу подписок
 		"USER_PROPERTY_PRIVATE" => "",
 		"USE_AJAX_LOCATIONS_PROFILE" => "N",
 		"COMPONENT_TEMPLATE" => "bootstrap_v4",

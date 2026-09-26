@@ -1,111 +1,80 @@
 BX.namespace('BX.Sale.PersonalOrderComponent');
 
-(function() {
+(function () {
 	BX.Sale.PersonalOrderComponent.PersonalOrderDetail = {
-		init : function(params)
-		{
-			var linkMoreOrderInformation = document.getElementsByClassName('sale-order-detail-about-order-inner-container-name-read-more')[0];
-			var linkLessOrderInformation = document.getElementsByClassName('sale-order-detail-about-order-inner-container-name-read-less')[0];
-			var clientInformation = document.getElementsByClassName('sale-order-detail-about-order-inner-container-details')[0];
-			var listShipmentWrapper = document.getElementsByClassName('sale-order-detail-payment-options-shipment');
-			var listPaymentWrapper = document.getElementsByClassName('sale-order-detail-payment-options-methods');
-			var shipmentTrackingId = document.getElementsByClassName('sale-order-detail-shipment-id');
+		init: function (params) {
+			params = params || {};
+			params.paymentList = params.paymentList || {};
 
-			if (shipmentTrackingId[0])
-			{
-				Array.prototype.forEach.call(shipmentTrackingId, function(blockId)
-				{
-					var clipboard = blockId.parentNode.getElementsByClassName('sale-order-detail-shipment-id-icon')[0];
-					if (clipboard)
-					{
-						BX.clipboard.bindCopyClick(clipboard, {text : blockId.innerHTML});
-					}
+			// "Данные покупателя" and other disclosure buttons
+			document.querySelectorAll('.mk-od [data-mk-toggle]').forEach(function (button) {
+				button.addEventListener('click', function () {
+					var target = document.getElementById(button.getAttribute('aria-controls'));
+					var open = button.getAttribute('aria-expanded') !== 'true';
+					button.setAttribute('aria-expanded', open ? 'true' : 'false');
+					if (target) target.hidden = !open;
 				});
-			}
-
-
-			BX.bind(linkMoreOrderInformation, 'click', function()
-			{
-
-				clientInformation.style.display = 'inline-block';
-				linkMoreOrderInformation.style.display = 'none';
-				linkLessOrderInformation.style.display = 'inline-block';
-			},this);
-			BX.bind(linkLessOrderInformation, 'click', function()
-			{
-				clientInformation.style.display = 'none';
-				linkMoreOrderInformation.style.display = 'inline-block';
-				linkLessOrderInformation.style.display = 'none';
-			},this);
-
-			Array.prototype.forEach.call(listShipmentWrapper, function(shipmentWrapper)
-			{
-				var detailShipmentBlock = shipmentWrapper.getElementsByClassName('sale-order-detail-payment-options-shipment-composition-map')[0];
-				var showInformation = shipmentWrapper.getElementsByClassName('sale-order-detail-show-link')[0];
-				var hideInformation = shipmentWrapper.getElementsByClassName('sale-order-detail-hide-link')[0];
-
-				BX.bindDelegate(shipmentWrapper, 'click', { 'class': 'sale-order-detail-show-link' }, BX.proxy(function()
-				{
-					showInformation.style.display = 'none';
-					hideInformation.style.display = 'inline-block';
-					detailShipmentBlock.style.display = 'block';
-				}, this));
-				BX.bindDelegate(shipmentWrapper, 'click', { 'class': 'sale-order-detail-hide-link' }, BX.proxy(function()
-				{
-					showInformation.style.display = 'inline-block';
-					hideInformation.style.display = 'none';
-					detailShipmentBlock.style.display = 'none';
-				}, this));
 			});
 
-			Array.prototype.forEach.call(listPaymentWrapper, function(paymentWrapper)
-			{
-				var rowPayment = paymentWrapper.getElementsByClassName('sale-order-detail-payment-options-methods-info')[0];
+			// copy a tracking number
+			document.querySelectorAll('.mk-od .mk-od__copy').forEach(function (button) {
+				if (BX.clipboard) {
+					BX.clipboard.bindCopyClick(button, { text: button.getAttribute('data-copy') });
+				}
+			});
 
-				BX.bindDelegate(paymentWrapper, 'click', { 'class': 'active-button' }, BX.proxy(function()
-				{
-					BX.toggleClass(paymentWrapper, 'sale-order-detail-active-event');
-				}, this));
+			document.querySelectorAll('.mk-od .mk-od-pay').forEach(function (row) {
+				var change = row.querySelector('.mk-od-pay__change');
+				var changeBody = row.querySelector('.mk-od-pay__change-body');
+				var form = row.querySelector('.mk-od-pay__form');
 
-				BX.bindDelegate(rowPayment, 'click', { 'class': 'sale-order-detail-payment-options-methods-info-change-link' }, BX.proxy(function(event)
-				{
-					event.preventDefault();
+				// online payment form printed by the pay system
+				row.querySelectorAll('[data-mk-pay]').forEach(function (button) {
+					button.addEventListener('click', function () {
+						if (!form) return;
+						var open = form.hidden;
+						form.hidden = !open;
+						button.setAttribute('aria-expanded', open ? 'true' : 'false');
+					});
+				});
 
-					var btn = rowPayment.parentNode.getElementsByClassName('sale-order-detail-payment-options-methods-button-container')[0];
-					var linkReturn = rowPayment.parentNode.getElementsByClassName('sale-order-detail-payment-inner-row-template')[0];
-					BX.ajax(
-						{
+				// change the payment system: the options come from sale.order.payment.change
+				row.querySelectorAll('[data-mk-change-payment]').forEach(function (button) {
+					button.addEventListener('click', function (event) {
+						event.preventDefault();
+						if (!change || button.disabled) return;
+						button.disabled = true;
+						row.classList.add('is-loading');
+						BX.ajax({
 							method: 'POST',
 							dataType: 'html',
 							url: params.url,
-							data:
-							{
+							data: {
 								sessid: BX.bitrix_sessid(),
-								orderData: params.paymentList[event.target.id],
-								templateName : params.templateName,
-								returnUrl: params.returnUrl,
+								orderData: params.paymentList[button.getAttribute('data-mk-change-payment')],
+								templateName: params.templateName,
+								returnUrl: params.returnUrl
 							},
-							onsuccess: BX.proxy(function(result)
-							{
-								rowPayment.innerHTML = result;
-								if (btn)
-								{
-									btn.parentNode.removeChild(btn);
-								}
-								linkReturn.style.display = "block";
-								BX.bind(linkReturn, 'click', function()
-								{
-									window.location.reload();
-								},this);
-							},this),
-							onfailure: BX.proxy(function()
-							{
-								return this;
-							}, this)
-						}, this
-					);
+							onsuccess: function (html) {
+								row.classList.remove('is-loading');
+								changeBody.innerHTML = html;
+								change.hidden = false;
+								row.classList.add('is-changing');
+							},
+							onfailure: function () {
+								row.classList.remove('is-loading');
+								button.disabled = false;
+							}
+						});
+					});
+				});
 
-				}, this));
+				// back: the payment block is re-rendered from the server, as in the stock template
+				row.querySelectorAll('[data-mk-change-back]').forEach(function (button) {
+					button.addEventListener('click', function () {
+						window.location.reload();
+					});
+				});
 			});
 		}
 	};

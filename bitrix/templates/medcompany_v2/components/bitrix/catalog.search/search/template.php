@@ -18,8 +18,14 @@ catch (\Throwable $exception) {
     $data = ['items' => [], 'sections' => [], 'limited' => false];
 }
 $items = []; $brands = []; $sections = []; $sectionDirect = []; $sectionTotal = 0;
+// price bounds for the filter slider: every other filter applies, the price one does not
+$priceFilters = $filters; $priceFilters['min'] = null; $priceFilters['max'] = null; $priceMin = null; $priceMax = null;
 foreach ($data['items'] as $id => $item) {
     if (MedcompanySearch::matches($item, $filters)) { $items[$id] = $item; }
+    if ($item['price'] !== null && MedcompanySearch::matches($item, $priceFilters)) {
+        $priceMin = $priceMin === null ? $item['price'] : min($priceMin, $item['price']);
+        $priceMax = $priceMax === null ? $item['price'] : max($priceMax, $item['price']);
+    }
     if ($item['brand_id'] && MedcompanySearch::matches($item, $filters, 'brand')) {
         if (!isset($brands[$item['brand_id']])) { $brands[$item['brand_id']] = ['name' => $item['brand'], 'count' => 0]; }
         $brands[$item['brand_id']]['count']++;
@@ -111,7 +117,7 @@ $e = ['MedcompanySearch', 'escape'];
                             <?php if ($filters['brand'] && !isset($brands[$filters['brand']])): ?><option value="<?=$filters['brand']?>" selected>Выбранный производитель (0)</option><?php endif; ?>
                             <?php foreach ($brands as $id => $brand): ?><option value="<?=$id?>" <?=$filters['brand'] === $id ? 'selected' : ''?>><?=$e($brand['name'])?> (<?=$brand['count']?>)</option><?php endforeach; ?>
                         </select></label>
-                        <fieldset class="ms-price-range"><legend>Цена, ₽</legend><div><label><span class="ms-sr-only">Цена от</span><input type="number" name="min" min="0" max="100000000" step="any" value="<?=$e($filters['min'])?>" placeholder="От"></label><span>—</span><label><span class="ms-sr-only">Цена до</span><input type="number" name="max" min="0" max="100000000" step="any" value="<?=$e($filters['max'])?>" placeholder="До"></label></div></fieldset>
+                        <fieldset class="ms-price-range"<?php if ($priceMin !== null && $priceMax > $priceMin): ?> data-min="<?= (int)floor($priceMin) ?>" data-max="<?= (int)ceil($priceMax) ?>"<?php endif ?>><legend>Цена, ₽</legend><div><label><span class="ms-sr-only">Цена от</span><input type="number" name="min" min="0" max="100000000" step="any" value="<?=$e($filters['min'])?>" placeholder="От"></label><span>—</span><label><span class="ms-sr-only">Цена до</span><input type="number" name="max" min="0" max="100000000" step="any" value="<?=$e($filters['max'])?>" placeholder="До"></label></div></fieldset>
                         <label class="ms-check"><input type="checkbox" name="stock" value="1" <?=$filters['stock'] ? 'checked' : ''?>> Только в наличии</label>
                         <label class="ms-check"><input type="checkbox" name="photo" value="1" <?=$filters['photo'] ? 'checked' : ''?>> Только с фотографией</label>
                         <button type="submit" class="ms-primary">Применить фильтры</button>

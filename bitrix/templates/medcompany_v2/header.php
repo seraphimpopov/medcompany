@@ -290,8 +290,6 @@ if ($mkHiddenTitle): ?>
         array('/personal/profile/orders/', 'Текущие заказы', false),
         array('/personal/profile/orders/?filter_history=Y', 'История заказов', false),
         array('/personal/profile/user/', 'Личные данные', false),
-        array('/personal/profile/account/', 'Личный счёт', false),
-        array('/personal/profile/subscribes/', 'Подписки', false),
         array('/personal/wishlist/', 'Избранное', false),
         array('/personal/cart/', 'Корзина', false),
     );

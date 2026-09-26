@@ -506,28 +506,115 @@
     function initSearchSort() {
         var toolbar = document.querySelector('.ms-toolbar');
         if (!toolbar || toolbar.querySelector('.mk-sortbar')) return;
-        var select = toolbar.querySelector('select');
+        var select = toolbar.querySelector('select[name="sort"]') || toolbar.querySelector('select');
         if (!select) return;
+        var apply = function (value) {
+            select.value = value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            if (toolbar.tagName === 'FORM' && !toolbar.classList.contains('ms-toolbar-enhanced')) toolbar.submit();
+        };
         var bar = document.createElement('div');
         bar.className = 'mk-sortbar mk-sortbar--search';
-        bar.innerHTML = '<span class="mk-sortbar__label">Сортировка:</span><div class="mk-sortbar__options"></div>';
+        bar.innerHTML = '<span class="mk-sortbar__label">Сортировка:</span><div class="mk-sortbar__options"></div>'
+            + '<label class="mk-sortbar__select"><span class="mk-sortbar__select-text">Сортировка</span><select aria-label="Сортировка товаров"></select></label>';
         var opts = bar.querySelector('.mk-sortbar__options');
+        var compact = bar.querySelector('.mk-sortbar__select select');
         Array.prototype.forEach.call(select.options, function (o) {
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'mk-sortbar__opt' + (o.selected ? ' is-active' : '');
             b.textContent = o.textContent.trim();
             if (o.selected) b.setAttribute('aria-current', 'true');
-            b.addEventListener('click', function () {
-                select.value = o.value;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-                if (toolbar.tagName === 'FORM' && !toolbar.classList.contains('ms-toolbar-enhanced')) toolbar.submit();
-            });
+            b.addEventListener('click', function () { apply(o.value); });
             opts.appendChild(b);
+            var copy = new Option(o.textContent.trim(), o.value, false, o.selected);
+            compact.appendChild(copy);
         });
+        compact.addEventListener('change', function () { apply(compact.value); });
         var label = select.closest('label');
         (label || select).classList.add('mk-visually-hidden-control');
+        // "Показывать по" lives inside the bar, as in the catalog
+        var count = toolbar.querySelector('select[name="count"]');
+        if (count) {
+            var oldLabel = count.closest('label');
+            var limit = document.createElement('label');
+            limit.className = 'mk-sortbar__limit';
+            limit.innerHTML = '<span class="mk-sortbar__limit-text">Показывать по</span>';
+            limit.appendChild(count);
+            bar.appendChild(limit);
+            if (oldLabel && oldLabel !== limit) oldLabel.remove();
+        }
         toolbar.insertBefore(bar, toolbar.firstChild);
+    }
+
+    // Two-handle price slider with the catalog filter's look; the inputs stay the source of truth
+    function priceSlider(minInput, maxInput, lo, hi) {
+        var wrap = document.createElement('div');
+        wrap.className = 'smart-filter-slider-track-container';
+        wrap.innerHTML = '<div class="smart-filter-slider-track">'
+            + '<div class="smart-filter-slider-price-bar-v"></div>'
+            + '<div class="smart-filter-slider-range" style="left:0;right:0">'
+            + '<button type="button" class="smart-filter-slider-handle left" aria-label="Минимальная цена"></button>'
+            + '<button type="button" class="smart-filter-slider-handle right" aria-label="Максимальная цена"></button>'
+            + '</div></div>';
+        var track = wrap.querySelector('.smart-filter-slider-track');
+        var bar = wrap.querySelector('.smart-filter-slider-price-bar-v');
+        var left = wrap.querySelector('.left');
+        var right = wrap.querySelector('.right');
+        var span = hi - lo;
+        var value = function (input, fallback) {
+            var v = parseFloat(String(input.value).replace(',', '.'));
+            return isNaN(v) ? fallback : Math.min(hi, Math.max(lo, v));
+        };
+        var draw = function () {
+            var a = (value(minInput, lo) - lo) / span;
+            var b = (value(maxInput, hi) - lo) / span;
+            if (a > b) { var t = a; a = b; b = t; }
+            left.style.left = (a * 100) + '%';
+            right.style.right = ((1 - b) * 100) + '%';
+            bar.style.left = (a * 100) + '%';
+            bar.style.right = ((1 - b) * 100) + '%';
+            left.setAttribute('aria-valuetext', Math.round(lo + a * span) + ' ₽');
+            right.setAttribute('aria-valuetext', Math.round(lo + b * span) + ' ₽');
+        };
+        var set = function (input, v) {
+            v = Math.round(v);
+            var edge = input === minInput ? v <= lo : v >= hi;
+            input.value = edge ? '' : String(v);
+            draw();
+        };
+        var drag = function (handle, input) {
+            handle.addEventListener('pointerdown', function (e) {
+                e.preventDefault();
+                handle.setPointerCapture(e.pointerId);
+                var move = function (ev) {
+                    var r = track.getBoundingClientRect();
+                    var f = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+                    var v = lo + f * span;
+                    if (input === minInput) v = Math.min(v, value(maxInput, hi));
+                    else v = Math.max(v, value(minInput, lo));
+                    set(input, v);
+                };
+                var up = function () {
+                    handle.removeEventListener('pointermove', move);
+                    handle.removeEventListener('pointerup', up);
+                };
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', up);
+            });
+            handle.addEventListener('keydown', function (e) {
+                var step = Math.max(1, Math.round(span / 50));
+                var current = value(input, input === minInput ? lo : hi);
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); set(input, current - step); }
+                if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); set(input, current + step); }
+            });
+        };
+        drag(left, minInput);
+        drag(right, maxInput);
+        minInput.addEventListener('input', draw);
+        maxInput.addEventListener('input', draw);
+        draw();
+        return wrap;
     }
 
     // Search page: the filter gets the catalog filter's markup (sections, check lists, "Показать" / "Сбросить")
@@ -603,7 +690,15 @@
                 l.appendChild(inp);
                 grid.appendChild(l);
             });
-            section('Цена, ₽').appendChild(grid);
+            var priceBox = section('Цена, ₽');
+            priceBox.appendChild(grid);
+            var lo = parseInt(range.getAttribute('data-min'), 10);
+            var hi = parseInt(range.getAttribute('data-max'), 10);
+            if (inputs[0] && inputs[1] && !isNaN(lo) && !isNaN(hi) && hi > lo) {
+                inputs[0].placeholder = String(lo);
+                inputs[1].placeholder = String(hi);
+                priceBox.appendChild(priceSlider(inputs[0], inputs[1], lo, hi));
+            }
             range.remove();
         }
 
@@ -692,6 +787,136 @@
         });
     }
 
+    // Cart: the empty state (server-rendered or shown after the last item is removed) gets the site's look
+    function emptyCart() {
+        document.querySelectorAll('.bx-sbb-empty-cart-container:not([data-mk-empty])').forEach(function (box) {
+            box.setAttribute('data-mk-empty', '1');
+            box.innerHTML = '<span class="mk-empty-cart__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3 4h2.2l2.3 11.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.1"/><circle cx="9.5" cy="20" r="1.3" fill="currentColor"/><circle cx="17" cy="20" r="1.3" fill="currentColor"/></svg></span>'
+                + '<h2 class="mk-empty-cart__title">Ваша корзина пуста</h2>'
+                + '<p class="mk-empty-cart__text">Загляните в каталог или воспользуйтесь поиском — добавленные товары появятся здесь.</p>'
+                + '<div class="mk-empty-cart__actions"><a class="mk-pill mk-pill--solid" href="/catalog/">Перейти в каталог</a><a class="mk-pill mk-pill--outline" href="/">На главную</a></div>';
+        });
+    }
+
+    // Home: the sticky catalog block always fits between its current top and the bottom of the screen
+    // (or the end of its column), so neither its top nor its rounded bottom leaves the viewport
+    function initHomeSidebar() {
+        var box = document.querySelector('.mk-index .catalog > .sum_cat');
+        if (!box) return;
+        var queued = false;
+        var fit = function () {
+            queued = false;
+            if (window.innerWidth < 992) { box.style.height = ''; return; }
+            // on QHD / 4K the body is zoomed: rects are in screen pixels, the height is set in CSS pixels
+            var zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
+            var gap = 16 * zoom;
+            var col = box.parentElement.getBoundingClientRect();
+            var top = Math.max(gap, col.top);
+            var bottom = Math.min(window.innerHeight - gap, col.bottom);
+            box.style.height = Math.max(260, Math.round((bottom - top) / zoom)) + 'px';
+        };
+        var request = function () {
+            if (!queued) { queued = true; requestAnimationFrame(fit); }
+        };
+        window.addEventListener('scroll', request, { passive: true });
+        window.addEventListener('resize', request);
+        fit();
+        setTimeout(fit, 800);
+    }
+
+    // Checkout: a collapsed "Покупатель" step lists the filled-in contact data instead of a bare "Свойства заказа"
+    function soaPropsSummary() {
+        var section = document.getElementById('bx-soa-properties');
+        var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
+        if (!section || !C || !C.result || !C.result.ORDER_PROP) return;
+        var content = section.querySelector('.bx-soa-section-content');
+        if (!content || section.classList.contains('bx-selected') || content.querySelector('.bx-soa-customer, .mk-soa-summary')) return;
+        var rows = [];
+        (C.result.ORDER_PROP.properties || []).forEach(function (p) {
+            if (p.TYPE === 'LOCATION' || p.TYPE === 'FILE' || p.TYPE === 'Y/N') return;
+            var value = [].concat(p.VALUE || []).filter(function (v) { return v !== '' && v != null; }).join(', ');
+            if (value) rows.push([p.NAME, value]);
+        });
+        if (!rows.length) return;
+        var list = document.createElement('dl');
+        list.className = 'mk-soa-summary';
+        rows.forEach(function (row) {
+            var item = document.createElement('div');
+            var dt = document.createElement('dt');
+            var dd = document.createElement('dd');
+            dt.textContent = row[0];
+            dd.textContent = row[1];
+            item.appendChild(dt);
+            item.appendChild(dd);
+            list.appendChild(item);
+        });
+        Array.prototype.forEach.call(content.children, function (child) {
+            if (child.tagName === 'STRONG') child.hidden = true;
+        });
+        content.appendChild(list);
+    }
+
+    // Checkout: the collapsed "Самовывоз" step becomes a card (photo + labelled rows) instead of bold-text lines
+    function soaPickupCard() {
+        var section = document.getElementById('bx-soa-pickup');
+        if (!section || section.classList.contains('bx-selected')) return;
+        var content = section.querySelector('.bx-soa-section-content');
+        var img = content && content.querySelector(':scope > img.bx-soa-pickup-preview-img');
+        if (!img || content.querySelector('.mk-pickup')) return;
+        var name = '';
+        var rows = [];
+        var label = null;
+        var value = '';
+        var flush = function () {
+            var clean = value.replace(/\s+/g, ' ').trim().replace(/^[-–:]\s*/, '');
+            if (label !== null && clean) rows.push([label, clean]);
+            label = null;
+            value = '';
+        };
+        Array.prototype.slice.call(content.childNodes).forEach(function (node) {
+            if (node === img || (node.classList && node.classList.contains('alert'))) return;
+            if (node.nodeName === 'STRONG') {
+                var text = node.textContent.trim();
+                if (!name && !rows.length && label === null) { name = text; }
+                else { flush(); label = text.replace(/[:\s-]+$/, ''); }
+                node.parentNode.removeChild(node);
+            } else if (node.nodeName === 'BR') {
+                flush();
+                node.parentNode.removeChild(node);
+            } else if (node.nodeType === 3 || node.nodeType === 1) {
+                if (label !== null) value += node.textContent;
+                if (node.parentNode === content && node.nodeName !== 'DIV') node.parentNode.removeChild(node);
+            }
+        });
+        flush();
+        var card = document.createElement('div');
+        card.className = 'mk-pickup';
+        img.className = 'mk-pickup__img';
+        img.alt = name;
+        card.appendChild(img);
+        var body = document.createElement('div');
+        body.className = 'mk-pickup__body';
+        var title = document.createElement('div');
+        title.className = 'mk-pickup__name';
+        title.textContent = name;
+        body.appendChild(title);
+        var list = document.createElement('dl');
+        list.className = 'mk-pickup__facts';
+        rows.forEach(function (row) {
+            var item = document.createElement('div');
+            var dt = document.createElement('dt');
+            var dd = document.createElement('dd');
+            dt.textContent = row[0];
+            dd.textContent = row[1];
+            item.appendChild(dt);
+            item.appendChild(dd);
+            list.appendChild(item);
+        });
+        body.appendChild(list);
+        card.appendChild(body);
+        content.appendChild(card);
+    }
+
     // Checkout: no height tweening or forced scroll jumps
     function calmCheckout() {
         var C = window.BX && BX.Sale && BX.Sale.OrderAjaxComponent;
@@ -748,6 +973,8 @@
         initSearchSort();
         initSearchFilter();
         initCrumbs();
+        initHomeSidebar();
+        emptyCart();
         calmCheckout();
         initBasketSelection();
         fitBanners();
@@ -771,7 +998,7 @@
             new MutationObserver(function () {
                 if (pending) return;
                 pending = true;
-                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); });
+                requestAnimationFrame(function () { pending = false; groupCardActions(); labelControls(); labelCart(); initBasketSelection(); fitBanners(); soaPropsSummary(); soaPickupCard(); emptyCart(); });
             }).observe(document.querySelector('.mk-main') || document.body, { childList: true, subtree: true });
         }
     }
