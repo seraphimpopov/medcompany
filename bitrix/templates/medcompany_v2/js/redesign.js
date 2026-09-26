@@ -948,8 +948,8 @@
         var fit = function () {
             queued = false;
             if (window.innerWidth < 992) { box.style.height = ''; return; }
-            // on QHD / 4K the body is zoomed: rects are in screen pixels, the height is set in CSS pixels
-            var zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
+            // on QHD / 4K the page blocks are zoomed: rects are in screen pixels, the height is set in CSS pixels
+            var zoom = box.currentCSSZoom || parseFloat(getComputedStyle(document.getElementById('mk-main') || document.body).zoom) || 1;
             var gap = 16 * zoom;
             var col = box.parentElement.getBoundingClientRect();
             var top = Math.max(gap, col.top);

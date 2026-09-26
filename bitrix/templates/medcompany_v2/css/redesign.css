@@ -2727,11 +2727,13 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 @media (min-width: 1920px) {
     :root { --mk-container: 1720px; --mk-side: 304px; }
 }
+/* only the site's own blocks are zoomed, never <body>: the Bitrix panel, edit-mode frames, toolbars and
+   popups are placed into <body> from element rects and would land 1.25× off (edit mode unusable) */
 @media (min-width: 2400px) {
-    body.mk-v2 { zoom: 1.25; }
+    body.mk-v2 > :is(.mk-skip, .mk-header, .mk-drawer, .mk-main, .mk-footer, .mk-cart-toast) { zoom: 1.25; }
 }
 @media (min-width: 3200px) {
-    body.mk-v2 { zoom: 1.75; }
+    body.mk-v2 > :is(.mk-skip, .mk-header, .mk-drawer, .mk-main, .mk-footer, .mk-cart-toast) { zoom: 1.75; }
 }
 
 /* sidebars follow --mk-side everywhere */
