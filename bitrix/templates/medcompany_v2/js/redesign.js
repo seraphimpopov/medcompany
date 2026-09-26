@@ -343,35 +343,31 @@
         });
     }
 
-    // Banners: one height; near-matching banners fill the frame, others sit on their own edge colour
+    // Banners come in 2.7:1 … 3.3:1: each one is shown whole inside one fixed frame (cropping cut their text),
+    // and the few spare pixels show a blurred copy of the same banner instead of flat bars
     function fitBanners() {
-        var TARGET = 2.95;
         document.querySelectorAll('.slider_area .slider_area__item').forEach(function (item) {
             var img = item.querySelector('img');
-            if (!img || item.dataset.mkFit) return;
-            var apply = function () {
-                if (!img.naturalWidth) return;
-                item.dataset.mkFit = '1';
-                var ratio = img.naturalWidth / img.naturalHeight;
-                if (Math.abs(ratio / TARGET - 1) <= 0.2) {
-                    item.classList.add('mk-fit-cover');
-                    return;
+            if (!img) return;
+            var sync = function () {
+                var src = img.currentSrc || img.src;
+                var backdrop = item.querySelector(':scope > .mk-banner-backdrop');
+                if (!src || (backdrop && backdrop.dataset.src === src)) return;
+                if (!backdrop) {
+                    backdrop = document.createElement('span');
+                    backdrop.className = 'mk-banner-backdrop';
+                    backdrop.setAttribute('aria-hidden', 'true');
+                    item.insertBefore(backdrop, item.firstChild);
                 }
-                item.classList.add('mk-fit-contain');
-                try {
-                    var c = document.createElement('canvas');
-                    var w = c.width = 48, h = c.height = Math.max(8, Math.round(48 / ratio));
-                    var ctx = c.getContext('2d', { willReadFrequently: true });
-                    ctx.drawImage(img, 0, 0, w, h);
-                    var d = ctx.getImageData(0, 0, w, h).data;
-                    var sum = [0, 0, 0], n = 0;
-                    var take = function (x, y) { var i = (y * w + x) * 4; sum[0] += d[i]; sum[1] += d[i + 1]; sum[2] += d[i + 2]; n++; };
-                    for (var x = 0; x < w; x++) { take(x, 0); take(x, h - 1); }
-                    for (var y = 0; y < h; y++) { take(0, y); take(w - 1, y); }
-                    item.style.backgroundColor = 'rgb(' + Math.round(sum[0] / n) + ',' + Math.round(sum[1] / n) + ',' + Math.round(sum[2] / n) + ')';
-                } catch (e) { /* cross-origin image: keep neutral background */ }
+                backdrop.dataset.src = src;
+                backdrop.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")';
             };
-            if (img.complete) apply(); else img.addEventListener('load', apply, { once: true });
+            if (img.complete) sync();
+            if (!item.dataset.mkFit) {
+                item.dataset.mkFit = '1';
+                // also fires when the browser switches to another srcset candidate
+                img.addEventListener('load', sync);
+            }
         });
     }
 

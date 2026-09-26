@@ -1027,7 +1027,10 @@ body.mk-lock { overflow: hidden; }
 .mk-v2 .bx-newslist-block .more { background: none !important; padding: 0 !important; margin: auto 0 0 !important; height: auto !important; }
 .mk-v2 .basket-item-property-custom-name, .mk-v2 .basket-item-property-name { color: var(--mk-muted) !important; }
 .mk-v2 .bx-newslist-more a .fa { font-size: 16px !important; margin-left: 4px !important; }
-@media (max-width: 991px) { .mk-slider-toggle { width: 44px; height: 44px; } }
+/* mobile layout: no pause / play button on the banners; on phones no arrows either (they covered the
+   banner text) — banners are swiped, the dots below show the position */
+@media (max-width: 991px) { .mk-slider-toggle { display: none !important; } }
+@media (max-width: 767px) { .mk-slider-arrow { display: none !important; } }
 .mk-v2 .basket-items-list-wrapper [class*="-description"], .mk-v2 .basket-items-list-wrapper [class*="-title"]:not(.basket-item-info-name) { color: var(--mk-muted) !important; }
 @media (max-width: 991px) { .mk-v2 a.btn-1, .mk-v2 .bx-newslist-more a { min-height: 44px; } }
 
@@ -1124,10 +1127,15 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 .mk-v2 .mk-fav-detail::before { width: 24px; height: 24px; }
 .mk-v2 .mk-fav-detail:hover { background: var(--mk-panel); }
 
-/* ---------- hero banners: one fixed proportion ---------- */
+/* ---------- hero banners: one fixed frame, every banner shown whole ----------
+   Banners come in 2.7:1 … 3.3:1. Cropping them to one proportion cut their text, so each one is
+   contained in the frame; the spare pixels show a blurred copy of it (.mk-banner-backdrop, redesign.js) */
 .mk-v2 .slider_area .slick-list, .mk-v2 .slider_area .slick-track { height: auto !important; }
-.mk-v2 .slider_area .slider_area__item, .mk-v2 .slider_area .slider_area__item > a, .mk-v2 .slider_area picture { display: block; aspect-ratio: 2.9 / 1; overflow: hidden; }
-.mk-v2 .slider_area .slider_area__img, .mk-v2 .slider_area picture img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.mk-v2 .slider_area .slider_area__item { position: relative; display: block; vertical-align: top; aspect-ratio: 2.85 / 1; overflow: hidden; background: #f4f7f2; }
+.mk-v2 .slider_area .slider_area__item > a, .mk-v2 .slider_area .slider_area__item > picture { position: absolute; inset: 0; z-index: 1; display: block; }
+.mk-v2 .slider_area .slider_area__item > a > picture { display: block; width: 100%; height: 100%; }
+.mk-v2 .slider_area .slider_area__img, .mk-v2 .slider_area picture img { display: block; width: 100%; height: 100%; min-height: 0 !important; max-height: none !important; margin: 0; object-fit: contain; object-position: center; }
+.mk-banner-backdrop { position: absolute; inset: -30px; z-index: 0; background: center / cover no-repeat; filter: blur(22px) saturate(1.05); opacity: .85; pointer-events: none; }
 
 /* ---------- catalog: section tiles ---------- */
 .mk-v2 .catalog-section-list-tile-list { grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)) !important; gap: 16px; }
@@ -1524,8 +1532,6 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
     .mk-collapse, .mk-v2 .mobile_filter_panel { transition: none; }
 }
 .mk-v2 .footer.mk-footer { position: static !important; top: auto !important; bottom: auto !important; left: auto !important; }
-.mk-v2 .slider_area .slider_area__item, .mk-v2 .slider_area .slider_area__item > a, .mk-v2 .slider_area picture { background: #fff; }
-.mk-v2 .slider_area .slider_area__img, .mk-v2 .slider_area picture img { object-fit: contain !important; }
 .mk-v2 .catalog-section-list-tile-list { grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)) !important; }
 .mk-v2 .catalog-section-list-item-title, .mk-v2 .catalog-section-list-item-title a { overflow-wrap: normal !important; word-break: normal !important; hyphens: manual; }
 .mk-sortbar { flex-wrap: nowrap; }
@@ -1757,12 +1763,6 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 .mk-side-head.is-searching > a.cat { display: none; }
 .mk-side-empty { margin: 4px 10px 8px; font-size: 13px; color: var(--mk-muted); }
 .mk-v2 .mk-side__item[hidden] { display: none; }
-
-/* ---------- banners: one height, no white bars ---------- */
-.mk-v2 .slider_area .slider_area__item, .mk-v2 .slider_area .slider_area__item > a, .mk-v2 .slider_area picture { background: transparent !important; }
-.mk-v2 .slider_area .slider_area__item { background-color: #f4f7f2; }
-.mk-v2 .slider_area .mk-fit-cover img { object-fit: cover !important; }
-.mk-v2 .slider_area .mk-fit-contain img { object-fit: contain !important; }
 
 /* ---------- basket ---------- */
 @media (min-width: 768px) {
@@ -2065,9 +2065,6 @@ body.mk-v2 > .mk-header, body.mk-v2 > .mk-footer { flex: none; width: 100%; }
 }
 .mk-v2 .product-item-title a { font-size: inherit !important; line-height: inherit !important; color: var(--mk-text) !important; }
 .mk-v2 .product-item-title a:hover { color: var(--mk-primary) !important; }
-.mk-v2 .slider_area .slider_area__item, .mk-v2 .slider_area .slider_area__item > a, .mk-v2 .slider_area picture { aspect-ratio: 2.95 / 1 !important; }
-.mk-v2 .slider_area .slider_area__item { background-color: transparent !important; }
-.mk-v2 .slider_area .slider_area__img, .mk-v2 .slider_area picture img { object-fit: cover !important; object-position: center; }
 .mk-slider-arrow {
     position: absolute; top: calc(50% - 17px); z-index: 5; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; transform: translateY(-50%);
